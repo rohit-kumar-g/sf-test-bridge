@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "SF Test Bridge",
+  "version": "0.1.0",
+  "description": "Lets Claude Code drive tabs in your real browser profile (SSO sessions included) through a local MCP server.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1F/6gwdisWCt0g/JNB9fTgbpfF2kT7LFkmfDEZnNykorw/xqaqFHl+ihN3Pj3Zwwlc2np1j4CvoD9C+0tdHNn3qeE8P43+Lz+/GeejMKqJmrJFQ8GlWAfIJMhGwFS9fvRRYH71owUt7HTvu02CP229cq/V6vejqCoUNcb0V+r5ocCoo0OoNf7XsicoC9wcnx0G4BgHGjXe1nAbarsFKKk81STQiU9C0NdooSRipRfNWkJPHraaHlnjeqijRpjFFJijJvJ0d67jZF1H+awOMZOgIkJ/ogmToNQ42Dmhgx/A3U4OkzLVf6JDtyv7Yv9494zMoKTvbISEnGOgaPRSQTmwIDAQAB",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "scripting",
+    "debugger",
+    "storage",
+    "alarms",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SF Test Bridge",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}

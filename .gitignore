@@ -1,0 +1,15 @@
+node_modules/
+mcp-server/node_modules/
+mcp-server/logs/
+logs/
+runs/*_backup/
+tests/.e2e-created.json
+evidence/
+
+# personal / local-only (not part of the public project)
+.claude/
+salesforce/
+runs/
+prompts/
+*.local.*
+scripts/

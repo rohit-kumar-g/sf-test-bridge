@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --accent: #d97757; --fg: #1f1f1f; --muted: #6b6b6b; --bg: #fff; --line: #e6e6e6; --ok: #2e7d32; --bad: #c62828; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #eee; --muted: #a0a0a0; --bg: #1e1e1e; --line: #333; } }
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; width: 320px; color: var(--fg); background: var(--bg); }
+  header { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  header b { flex: 1; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); }
+  .dot.on { background: var(--ok); }
+  section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .muted { color: var(--muted); font-size: 12px; }
+  button { font: inherit; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  ul { margin: 6px 0 0; padding-left: 16px; max-height: 140px; overflow: auto; }
+  li { margin: 2px 0; word-break: break-all; }
+  input[type=number] { width: 80px; font: inherit; }
+  select { font: inherit; }
+  .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 290px; }
+</style>
+</head>
+<body>
+<header><span id="dot" class="dot"></span><b>SF Test Bridge</b><span id="browser" class="muted"></span></header>
+<section>
+  <div id="conn"></div>
+  <div class="row"><button id="reconnect">Reconnect</button><button id="pause"></button></div>
+</section>
+<section>
+  <div class="muted">Current tab</div>
+  <div id="cur" class="title"></div>
+  <div class="row"><button id="share" class="primary"></button></div>
+</section>
+<section>
+  <div class="muted">Tabs Claude can control</div>
+  <ul id="tabs"></ul>
+</section>
+<section>
+  <div class="row"><span class="muted">Open new tabs in</span>
+    <select id="openMode"><option value="window">a separate Claude window</option><option value="tab">the current window</option></select>
+  </div>
+  <div class="row"><span class="muted">Hub port</span><input id="port" type="number" min="1024" max="65535"><button id="savePort">Save</button></div>
+</section>
+<script src="popup.js"></script>
+</body>
+</html>
