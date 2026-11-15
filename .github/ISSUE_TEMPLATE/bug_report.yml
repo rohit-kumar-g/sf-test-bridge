@@ -1,0 +1,56 @@
+name: Bug report
+description: Something doesn't work as described
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Don't paste customer data, org addresses, usernames or raw debug logs**: scrub them first.
+        Security problems go through [private reporting](https://github.com/rohit-kumar-g/sf-test-bridge/security/advisories/new), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a record page …
+        2. Ask Claude to …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: browser_doctor output
+      description: Run `node mcp-server/src/cli.js doctor` (or ask Claude to run browser_doctor) and paste the result.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: SF Test Bridge version
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Chrome, Edge, Brave, Other Chromium]
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS, Node.js version and MCP client
+      placeholder: "Windows 11, Node 22, Claude Code"
+  - type: dropdown
+    id: org
+    attributes:
+      label: Org type
+      options: [Developer Edition, Sandbox, Scratch org, Production, Not Salesforce]

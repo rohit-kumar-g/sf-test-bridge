@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/rohit-kumar-g/sf-test-bridge/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: Documentation
+    url: https://github.com/rohit-kumar-g/sf-test-bridge/tree/main/docs
+    about: Setup, safety, debug logs, configuration.

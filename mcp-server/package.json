@@ -1,16 +1,43 @@
 {
   "name": "sf-test-bridge",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "MCP server that lets Claude Code (or any MCP client) test Salesforce in your own Chrome or Edge, with your existing logins, through the SF Test Bridge extension.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "salesforce",
+    "lightning",
+    "testing",
+    "browser-automation",
+    "chrome-extension",
+    "debug-logs",
+    "apex",
+    "flow"
+  ],
+  "homepage": "https://github.com/rohit-kumar-g/sf-test-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/rohit-kumar-g/sf-test-bridge/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rohit-kumar-g/sf-test-bridge.git",
+    "directory": "mcp-server"
+  },
   "license": "MIT",
-  "description": "MCP server that lets Claude Code (or any MCP client) test Salesforce in your real Chrome/Edge, with your existing logins, through the SF Test Bridge extension.",
   "type": "module",
   "main": "src/index.js",
-  "bin": { "sf-test-bridge": "src/index.js" },
+  "bin": {
+    "sf-test-bridge": "src/index.js"
+  },
   "scripts": {
     "start": "node src/index.js",
     "test": "node ../tests/hub-cancel.test.mjs && node ../tests/steps-stale-alerts.test.mjs && node ../tests/site-policy.test.mjs && node ../tests/hub-sessions.test.mjs && node ../tests/charter-gate.test.mjs && node ../tests/project.test.mjs && node ../tests/orginfo.test.mjs && node ../tests/changes.test.mjs && node ../tests/debuglog.test.mjs && node ../tests/trace.test.mjs && node ../tests/capture.test.mjs && node ../tests/sfdirect.test.mjs"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
     "ws": "8.22.0"

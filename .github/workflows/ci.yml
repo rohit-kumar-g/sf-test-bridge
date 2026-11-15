@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+      - name: Install
+        working-directory: mcp-server
+        run: npm ci
+      - name: Check syntax
+        shell: bash
+        run: |
+          for f in extension/*.js mcp-server/src/*.js dashboard/*.js dashboard/public/*.js; do node --check "$f"; done
+      - name: Validate manifest and versions
+        shell: bash
+        run: |
+          node -e "
+            const m = require('./extension/manifest.json'), p = require('./mcp-server/package.json');
+            if (m.manifest_version !== 3) throw new Error('manifest_version must be 3');
+            if (m.version !== p.version) throw new Error('extension ' + m.version + ' and server ' + p.version + ' versions differ');
+            console.log('version', p.version);
+          "
+      - name: Test
+        working-directory: mcp-server
+        run: npm test
