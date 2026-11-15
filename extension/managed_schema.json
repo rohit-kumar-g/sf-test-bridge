@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "properties": {
+    "allowList": {
+      "title": "Allowed sites",
+      "description": "Site patterns Claude may act on (replaces the user's list). Same syntax as the popup.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blockList": {
+      "title": "Blocked sites",
+      "description": "Site patterns Claude may never act on (replaces the user's list).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "productionWrites": {
+      "title": "Writes in production orgs",
+      "description": "\"ask\" (default): the user may allow writes in a production org for a limited time. \"never\": production orgs stay read-only for Claude.",
+      "type": "string"
+    },
+    "orgSetupReading": {
+      "title": "Reading org setup",
+      "description": "false: Claude may not read org setup (fields, picklists, layouts) through the UI API, even if a user allows it.",
+      "type": "boolean"
+    }
+  }
+}

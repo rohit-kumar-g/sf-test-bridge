@@ -29,7 +29,7 @@ export function logAction(source, action, args, ok, result) {
     try { host = new URL(result?.url || args?.url).host; } catch { /* none */ }
     fs.appendFileSync(ACTION_LOG, JSON.stringify({
       time: new Date().toISOString(), target: host, username: null, source, runId: RUN_ID,
-      action, write: !READ_ONLY.test(action), details: redact(action, args || {}),
+      action, write: typeof args?.write === 'boolean' ? args.write : !READ_ONLY.test(action), details: redact(action, args || {}),
       result: ok ? 'ok' : `error: ${String(result).slice(0, 300)}`,
     }) + '\n');
   } catch { /* logging must never break a tool call */ }

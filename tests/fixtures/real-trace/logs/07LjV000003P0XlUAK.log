@@ -1,0 +1,319 @@
+68.0 APEX_CODE,FINEST;APEX_PROFILING,FINEST;CALLOUT,FINEST;DATA_ACCESS,INFO;DB,FINEST;NBA,NONE;SYSTEM,FINE;VALIDATION,INFO;VISUALFORCE,FINEST;WAVE,NONE;WORKFLOW,FINER
+23:03:01.0 (975122)|USER_INFO|[EXTERNAL]|005000000000002|automation.user@example.com|(GMT+00:00) Coordinated Universal Time (UTC)|GMT+00:00
+23:03:01.0 (4988211)|FLOW_CREATE_INTERVIEW_BEGIN|00D000000000001|300jV00000Q5af2|301jV00000L85EZ
+23:03:01.0 (5096511)|FLOW_CREATE_INTERVIEW_END|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Bridge Trace Account After Save
+23:03:01.7 (7314425)|USER_INFO|[EXTERNAL]|005000000000002|automation.user@example.com|(GMT+00:00) Coordinated Universal Time (UTC)|GMT+00:00
+23:03:01.7 (7348906)|FLOW_START_INTERVIEWS_BEGIN|1
+23:03:01.7 (9231260)|FLOW_START_INTERVIEW_BEGIN|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Bridge Trace Account After Save
+23:03:01.7 (9322480)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOQL queries: 0 out of 200
+23:03:01.7 (9365370)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOQL query rows: 0 out of 50000
+23:03:01.7 (9368410)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOSL queries: 0 out of 20
+23:03:01.7 (9371530)|FLOW_START_INTERVIEW_LIMIT_USAGE|DML statements: 0 out of 150
+23:03:01.7 (9374390)|FLOW_START_INTERVIEW_LIMIT_USAGE|DML rows: 0 out of 10000
+23:03:01.7 (9377490)|FLOW_START_INTERVIEW_LIMIT_USAGE|CPU time in ms: 3 out of 65000
+23:03:01.7 (9417750)|FLOW_START_INTERVIEW_LIMIT_USAGE|Heap size in bytes: 0 out of 25000000
+23:03:01.7 (9421160)|FLOW_START_INTERVIEW_LIMIT_USAGE|Callouts: 0 out of 100
+23:03:01.7 (9428120)|FLOW_START_INTERVIEW_LIMIT_USAGE|Email invocations: 0 out of 10
+23:03:01.7 (9430750)|FLOW_START_INTERVIEW_LIMIT_USAGE|Future calls: 0 out of 50
+23:03:01.7 (9433450)|FLOW_START_INTERVIEW_LIMIT_USAGE|Jobs in queue: 0 out of 50
+23:03:01.7 (9436080)|FLOW_START_INTERVIEW_LIMIT_USAGE|Push notifications: 0 out of 10
+23:03:01.7 (9654220)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|start__scheduledPath|_0
+23:03:01.7 (9660220)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|start__scheduledPathType|AsyncAfterCommit
+23:03:01.7 (12060455)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|$Record|{Id=001jV00000L8HHJQA3, IsDeleted=false, MasterRecordId=null, Name=Bridge Trace Acme, Type=null, ParentId=null, BillingStreet=null, BillingCity=null, BillingState=null, BillingPostalCode=null, BillingCountry=null, BillingStateCode=null, BillingCountryCode=null, BillingLatitude=null, BillingLongitude=null, BillingGeocodeAccuracy=null, ShippingStreet=null, ShippingCity=null, ShippingState=null, ShippingPostalCode=null, ShippingCountry=null, ShippingStateCode=null, ShippingCountryCode=null, ShippingLatitude=null, ShippingLongitude=null, ShippingGeocodeAccuracy=null, Phone=null, Fax=null, AccountNumber=null, Website=null, PhotoUrl=null, Sic=null, Industry=Consulting, AnnualRevenue=2500000.0, NumberOfEmployees=null, Ownership=null, TickerSymbol=null, Description=null, Rating=Warm, Site=null, OwnerId=005000000000001, CreatedDate=2026-11-14 23:07:14, CreatedById=005000000000001, LastModifiedDate=2026-11-15 07:03:01, LastModifiedById=005000000000002, SystemModstamp=2026-11-15 07:03:01, LastActivityDate=null, LastViewedDate=null, LastReferencedDate=null, Jigsaw=null, JigsawCompanyId=null, CleanStatus=Pending, AccountSource=null, DunsNumber=null, Tradestyle=null, NaicsCode=null, NaicsDesc=null, YearStarted=null, SicDesc=null, DandbCompanyId=null, OperatingHoursId=null, Tier=null, acmens__CustomerPriority__c=null, acmens__SLA__c=null, acmens__Active__c=null, acmens__NumberofLocations__c=null, acmens__UpsellOpportunity__c=null, acmens__SLASerialNumber__c=null, acmens__SLAExpirationDate__c=null, acmens__Bridge_Category__c=null, acmens__Bridge_Checkbox__c=false, acmens__Bridge_DateTime__c=null, acmens__Bridge_Multi__c=null, acmens__Bridge_Subcategory__c=null, acmens__Bridge_Trace_Async__c=Async flow path ran, acmens__Bridge_Trace_Note__c=Bridge Trace Acme / Warm, acmens__Bridge_Trace_Score__c=25.0, acmens__Bridge_Trace_Tier__c=Silver}
+23:03:01.7 (12270966)|FLOW_ELEMENT_BEGIN|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|FlowRecordUpdate|Async_Note
+23:03:01.7 (12329796)|FLOW_ELEMENT_DEFERRED|FlowRecordUpdate|Async_Note
+23:03:01.7 (12400186)|FLOW_ELEMENT_LIMIT_USAGE|1 ms CPU time, total 4 out of 65000
+23:03:01.7 (12428236)|FLOW_ELEMENT_END|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|FlowRecordUpdate|Async_Note
+23:03:01.7 (12498206)|FLOW_START_INTERVIEW_END|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Bridge Trace Account After Save
+23:03:01.7 (12656817)|FLOW_BULK_ELEMENT_BEGIN|FlowRecordUpdate|Async_Note
+23:03:01.7 (13213398)|FLOW_BULK_ELEMENT_DETAIL|FlowRecordUpdate|Async_Note|1
+23:03:01.35 (35128174)|FLOW_CREATE_INTERVIEW_BEGIN|00D000000000001|300jV00000Q5af1|301jV00000L8I0T
+23:03:01.35 (35239794)|FLOW_CREATE_INTERVIEW_END|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Bridge Trace Account Before Save
+23:03:01.35 (35596285)|FLOW_START_INTERVIEWS_BEGIN|1
+23:03:01.35 (35672195)|FLOW_START_INTERVIEW_BEGIN|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Bridge Trace Account Before Save
+23:03:01.35 (35715095)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOQL queries: 0 out of 200
+23:03:01.35 (35720535)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOQL query rows: 0 out of 50000
+23:03:01.35 (35723615)|FLOW_START_INTERVIEW_LIMIT_USAGE|SOSL queries: 0 out of 20
+23:03:01.35 (35726855)|FLOW_START_INTERVIEW_LIMIT_USAGE|DML statements: 1 out of 150
+23:03:01.35 (35729475)|FLOW_START_INTERVIEW_LIMIT_USAGE|DML rows: 1 out of 10000
+23:03:01.35 (35731915)|FLOW_START_INTERVIEW_LIMIT_USAGE|CPU time in ms: 9 out of 65000
+23:03:01.35 (35761056)|FLOW_START_INTERVIEW_LIMIT_USAGE|Heap size in bytes: 0 out of 25000000
+23:03:01.35 (35763836)|FLOW_START_INTERVIEW_LIMIT_USAGE|Callouts: 0 out of 100
+23:03:01.35 (35766356)|FLOW_START_INTERVIEW_LIMIT_USAGE|Email invocations: 0 out of 10
+23:03:01.35 (35768766)|FLOW_START_INTERVIEW_LIMIT_USAGE|Future calls: 0 out of 50
+23:03:01.35 (35770936)|FLOW_START_INTERVIEW_LIMIT_USAGE|Jobs in queue: 0 out of 50
+23:03:01.35 (35773596)|FLOW_START_INTERVIEW_LIMIT_USAGE|Push notifications: 0 out of 10
+23:03:01.35 (36559987)|FLOW_VALUE_ASSIGNMENT|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|$Record|{Id=001jV00000L8HHJQA3, IsDeleted=false, MasterRecordId=null, Name=Bridge Trace Acme, Type=null, ParentId=null, BillingStreet=null, BillingCity=null, BillingState=null, BillingPostalCode=null, BillingCountry=null, BillingStateCode=null, BillingCountryCode=null, BillingLatitude=null, BillingLongitude=null, BillingGeocodeAccuracy=null, ShippingStreet=null, ShippingCity=null, ShippingState=null, ShippingPostalCode=null, ShippingCountry=null, ShippingStateCode=null, ShippingCountryCode=null, ShippingLatitude=null, ShippingLongitude=null, ShippingGeocodeAccuracy=null, Phone=null, Fax=null, AccountNumber=null, Website=null, PhotoUrl=null, Sic=null, Industry=Consulting, AnnualRevenue=2500000.0, NumberOfEmployees=null, Ownership=null, TickerSymbol=null, Description=null, Rating=Warm, Site=null, OwnerId=005000000000001, CreatedDate=2026-11-14 23:07:14, CreatedById=005000000000001, LastModifiedDate=2026-11-15 07:03:01, LastModifiedById=005000000000002, SystemModstamp=2026-11-15 07:03:01, LastActivityDate=null, LastViewedDate=null, LastReferencedDate=null, Jigsaw=null, JigsawCompanyId=null, CleanStatus=Pending, AccountSource=null, DunsNumber=null, Tradestyle=null, NaicsCode=null, NaicsDesc=null, YearStarted=null, SicDesc=null, DandbCompanyId=null, OperatingHoursId=null, Tier=null, acmens__CustomerPriority__c=null, acmens__SLA__c=null, acmens__Active__c=null, acmens__NumberofLocations__c=null, acmens__UpsellOpportunity__c=null, acmens__SLASerialNumber__c=null, acmens__SLAExpirationDate__c=null, acmens__Bridge_Category__c=null, acmens__Bridge_Checkbox__c=false, acmens__Bridge_DateTime__c=null, acmens__Bridge_Multi__c=null, acmens__Bridge_Subcategory__c=null, acmens__Bridge_Trace_Async__c=Async flow path ran, acmens__Bridge_Trace_Note__c=Bridge Trace Acme / Warm, acmens__Bridge_Trace_Score__c=25.0, acmens__Bridge_Trace_Tier__c=Silver}
+23:03:01.35 (36732748)|FLOW_ELEMENT_BEGIN|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|FlowDecision|Tier_By_Rating
+23:03:01.35 (36765538)|FLOW_ELEMENT_DEFERRED|FlowDecision|Tier_By_Rating
+23:03:01.35 (36798578)|FLOW_ELEMENT_LIMIT_USAGE|1 ms CPU time, total 10 out of 65000
+23:03:01.35 (36816908)|FLOW_ELEMENT_END|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|FlowDecision|Tier_By_Rating
+23:03:01.35 (36872548)|FLOW_START_INTERVIEW_END|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Bridge Trace Account Before Save
+23:03:01.35 (36919228)|FLOW_BULK_ELEMENT_BEGIN|FlowDecision|Tier_By_Rating
+23:03:01.35 (37197839)|FLOW_RULE_DETAIL|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Is_Hot|false|false
+23:03:01.35 (37230919)|FLOW_RULE_DETAIL|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Is_Warm|true|false
+23:03:01.35 (37269189)|FLOW_VALUE_ASSIGNMENT|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Is_Warm|true
+23:03:01.35 (37271869)|FLOW_VALUE_ASSIGNMENT|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Is_Hot|false
+23:03:01.35 (37437719)|FLOW_BULK_ELEMENT_END|FlowDecision|Tier_By_Rating|0|0
+23:03:01.35 (37488719)|FLOW_ELEMENT_BEGIN|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|FlowAssignment|Set_Tier_Silver
+23:03:01.35 (37502449)|FLOW_ELEMENT_DEFERRED|FlowAssignment|Set_Tier_Silver
+23:03:01.35 (37519919)|FLOW_ELEMENT_END|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|FlowAssignment|Set_Tier_Silver
+23:03:01.35 (37551259)|FLOW_BULK_ELEMENT_BEGIN|FlowAssignment|Set_Tier_Silver
+23:03:01.35 (37702470)|FLOW_ASSIGNMENT_DETAIL|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|$Record.acmens__Bridge_Trace_Tier__c|ASSIGN|Silver
+23:03:01.35 (38097450)|FLOW_VALUE_ASSIGNMENT|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|$Record|{Id=001jV00000L8HHJQA3, IsDeleted=false, MasterRecordId=null, Name=Bridge Trace Acme, Type=null, ParentId=null, BillingStreet=null, BillingCity=null, BillingState=null, BillingPostalCode=null, BillingCountry=null, BillingStateCode=null, BillingCountryCode=null, BillingLatitude=null, BillingLongitude=null, BillingGeocodeAccuracy=null, ShippingStreet=null, ShippingCity=null, ShippingState=null, ShippingPostalCode=null, ShippingCountry=null, ShippingStateCode=null, ShippingCountryCode=null, ShippingLatitude=null, ShippingLongitude=null, ShippingGeocodeAccuracy=null, Phone=null, Fax=null, AccountNumber=null, Website=null, PhotoUrl=null, Sic=null, Industry=Consulting, AnnualRevenue=2500000.0, NumberOfEmployees=null, Ownership=null, TickerSymbol=null, Description=null, Rating=Warm, Site=null, OwnerId=005000000000001, CreatedDate=2026-11-14 23:07:14, CreatedById=005000000000001, LastModifiedDate=2026-11-15 07:03:01, LastModifiedById=005000000000002, SystemModstamp=2026-11-15 07:03:01, LastActivityDate=null, LastViewedDate=null, LastReferencedDate=null, Jigsaw=null, JigsawCompanyId=null, CleanStatus=Pending, AccountSource=null, DunsNumber=null, Tradestyle=null, NaicsCode=null, NaicsDesc=null, YearStarted=null, SicDesc=null, DandbCompanyId=null, OperatingHoursId=null, Tier=null, acmens__CustomerPriority__c=null, acmens__SLA__c=null, acmens__Active__c=null, acmens__NumberofLocations__c=null, acmens__UpsellOpportunity__c=null, acmens__SLASerialNumber__c=null, acmens__SLAExpirationDate__c=null, acmens__Bridge_Category__c=null, acmens__Bridge_Checkbox__c=false, acmens__Bridge_DateTime__c=null, acmens__Bridge_Multi__c=null, acmens__Bridge_Subcategory__c=null, acmens__Bridge_Trace_Async__c=Async flow path ran, acmens__Bridge_Trace_Note__c=Bridge Trace Acme / Warm, acmens__Bridge_Trace_Score__c=25.0, acmens__Bridge_Trace_Tier__c=Silver}
+23:03:01.35 (38181521)|FLOW_BULK_ELEMENT_LIMIT_USAGE|1 ms CPU time, total 11 out of 65000
+23:03:01.35 (38204461)|FLOW_BULK_ELEMENT_END|FlowAssignment|Set_Tier_Silver|0|0
+23:03:01.35 (38499741)|FLOW_START_INTERVIEWS_END|1
+23:03:01.35 (38762312)|FLOW_INTERVIEW_FINISHED|94953cb38ac8407f41b72ef501c1a1dcfaeb4d-4a62|Bridge Trace Account Before Save
+23:03:01.35 (38784052)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOQL queries: 0 out of 200
+23:03:01.35 (38788332)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOQL query rows: 0 out of 50000
+23:03:01.35 (38791142)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOSL queries: 0 out of 20
+23:03:01.35 (38797672)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|DML statements: 1 out of 150
+23:03:01.35 (38801442)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|DML rows: 1 out of 10000
+23:03:01.35 (38803932)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|CPU time in ms: 11 out of 65000
+23:03:01.35 (38812392)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Heap size in bytes: 0 out of 25000000
+23:03:01.35 (38815162)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Callouts: 0 out of 100
+23:03:01.35 (38817492)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Email invocations: 0 out of 10
+23:03:01.35 (38819692)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Future calls: 0 out of 50
+23:03:01.35 (38821732)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Jobs in queue: 0 out of 50
+23:03:01.44 (44044612)|CODE_UNIT_STARTED|[EXTERNAL]|01qjV000001CMoz|acmens.BridgeTraceAccountTrigger on Account trigger event BeforeUpdate|__sfdc_trigger/acmens/BridgeTraceAccountTrigger
+23:03:01.44 (44098342)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:03:01.44 (44136442)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:03:01.44 (44341603)|HEAP_ALLOCATE|[95]|Bytes:3
+23:03:01.44 (44397783)|HEAP_ALLOCATE|[100]|Bytes:152
+23:03:01.44 (44409523)|HEAP_ALLOCATE|[417]|Bytes:408
+23:03:01.44 (44419493)|HEAP_ALLOCATE|[430]|Bytes:408
+23:03:01.44 (44434293)|HEAP_ALLOCATE|[317]|Bytes:6
+23:03:01.44 (44443473)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:03:01.44 (44497653)|VARIABLE_SCOPE_BEGIN|[1]|this|acmens.BridgeTraceAccountTrigger|true|false
+23:03:01.44 (44809994)|VARIABLE_ASSIGNMENT|[1]|this|{}|0xaa9226f
+23:03:01.44 (44867894)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:03:01.44 (44879124)|VARIABLE_SCOPE_BEGIN|[1]|this|acmens.BridgeTraceAccountTrigger|true|false
+23:03:01.44 (44915344)|VARIABLE_ASSIGNMENT|[1]|this|{}|0xaa9226f
+23:03:01.44 (44932354)|STATEMENT_EXECUTE|[1]
+23:03:01.44 (44949384)|HEAP_ALLOCATE|[68]|Bytes:5
+23:03:01.44 (44971574)|HEAP_ALLOCATE|[74]|Bytes:5
+23:03:01.44 (44979074)|HEAP_ALLOCATE|[82]|Bytes:7
+23:03:01.44 (44997324)|STATEMENT_EXECUTE|[2]
+23:03:01.44 (44998334)|STATEMENT_EXECUTE|[3]
+23:03:01.44 (45855356)|HEAP_ALLOCATE|[3]|Bytes:7
+23:03:01.44 (45875156)|METHOD_ENTRY|[4]|01pjV000005DFnx|acmens.BridgeTraceAccountHandler.BridgeTraceAccountHandler()
+23:03:01.44 (45879656)|STATEMENT_EXECUTE|[4]
+23:03:01.44 (45884756)|STATEMENT_EXECUTE|[4]
+23:03:01.44 (47836690)|SYSTEM_MODE_ENTER|false
+23:03:01.44 (48013710)|HEAP_ALLOCATE|[3]|Bytes:5
+23:03:01.44 (48034790)|SYSTEM_MODE_EXIT|false
+23:03:01.44 (48043480)|METHOD_EXIT|[4]|acmens.BridgeTraceAccountHandler
+23:03:01.44 (48079350)|METHOD_ENTRY|[3]|01pjV000005DFnx|acmens.BridgeTraceAccountHandler.beforeUpdate(List<Account>, Map<Id,Account>)
+23:03:01.44 (48135810)|VARIABLE_SCOPE_BEGIN|[5]|news|List<Account>|true|false
+23:03:01.44 (49133092)|VARIABLE_ASSIGNMENT|[5]|news|[{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}]|0x2847314c
+23:03:01.44 (49146962)|VARIABLE_SCOPE_BEGIN|[5]|olds|Map<Id,Account>|true|false
+23:03:01.44 (49613773)|VARIABLE_ASSIGNMENT|[5]|olds|{"001jV00000L8HHJQA3":{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}}|0x6591b090
+23:03:01.44 (49626393)|SYSTEM_MODE_ENTER|false
+23:03:01.44 (49631083)|HEAP_ALLOCATE|[6]|Bytes:5
+23:03:01.44 (49637493)|STATEMENT_EXECUTE|[5]
+23:03:01.44 (49689903)|SYSTEM_METHOD_ENTRY|[6]|List<Account>.iterator()
+23:03:01.44 (49795853)|SYSTEM_METHOD_EXIT|[6]|List<Account>.iterator()
+23:03:01.44 (49820604)|SYSTEM_METHOD_ENTRY|[6]|system.ListIterator.hasNext()
+23:03:01.44 (49826564)|HEAP_ALLOCATE|[6]|Bytes:5
+23:03:01.44 (49833024)|SYSTEM_METHOD_EXIT|[6]|system.ListIterator.hasNext()
+23:03:01.44 (49867174)|HEAP_ALLOCATE|[6]|Bytes:4
+23:03:01.44 (49876504)|VARIABLE_SCOPE_BEGIN|[6]|a|Account|true|false
+23:03:01.44 (50378295)|VARIABLE_ASSIGNMENT|[6]|a|{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}|0x10d42c3e
+23:03:01.44 (50385195)|STATEMENT_EXECUTE|[6]
+23:03:01.44 (50385995)|STATEMENT_EXECUTE|[7]
+23:03:01.44 (50440205)|SYSTEM_METHOD_ENTRY|[7]|Map<Id,Account>.get(Object)
+23:03:01.44 (50457945)|SYSTEM_METHOD_EXIT|[7]|Map<Id,Account>.get(Object)
+23:03:01.44 (50464995)|VARIABLE_SCOPE_BEGIN|[7]|old|Account|true|false
+23:03:01.44 (50830085)|VARIABLE_ASSIGNMENT|[7]|old|{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}|0x76a617fc
+23:03:01.44 (50847596)|HEAP_ALLOCATE|[8]|Bytes:5
+23:03:01.44 (50890926)|SYSTEM_METHOD_ENTRY|[8]|String.contains(String)
+23:03:01.44 (50910816)|SYSTEM_METHOD_EXIT|[8]|String.contains(String)
+23:03:01.44 (50915176)|STATEMENT_EXECUTE|[8]
+23:03:01.44 (50956096)|SYSTEM_METHOD_ENTRY|[12]|Decimal.compareTo(Decimal)
+23:03:01.44 (50971136)|SYSTEM_METHOD_EXIT|[12]|Decimal.compareTo(Decimal)
+23:03:01.44 (50973636)|STATEMENT_EXECUTE|[12]
+23:03:01.44 (50998756)|STATEMENT_EXECUTE|[15]
+23:03:01.44 (51004946)|SYSTEM_METHOD_ENTRY|[6]|system.ListIterator.hasNext()
+23:03:01.44 (51009256)|HEAP_ALLOCATE|[6]|Bytes:5
+23:03:01.44 (51013276)|SYSTEM_METHOD_EXIT|[6]|system.ListIterator.hasNext()
+23:03:01.44 (51023166)|VARIABLE_ASSIGNMENT|[6]|a|null|
+23:03:01.44 (51045486)|SYSTEM_MODE_EXIT|false
+23:03:01.44 (51068096)|METHOD_EXIT|[3]|01pjV000005DFnx|acmens.BridgeTraceAccountHandler.beforeUpdate(List<Account>, Map<Id,Account>)
+23:03:01.51 (51089516)|CUMULATIVE_LIMIT_USAGE
+23:03:01.51 (51089516)|LIMIT_USAGE_FOR_NS|(default)|
+  Number of SOQL queries: 0 out of 200
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 0 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 0 out of 10000
+  Maximum CPU time: 0 out of 60000
+  Maximum heap size: 0 out of 25000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:03:01.51 (51089516)|LIMIT_USAGE_FOR_NS|acmens|
+  Number of SOQL queries: 0 out of 200
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 1 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 1 out of 10000
+  Maximum CPU time: 11 out of 60000
+  Maximum heap size: 0 out of 25000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:03:01.51 (51089516)|TOTAL_EMAIL_RECIPIENTS_QUEUED|0
+23:03:01.51 (51089516)|CUMULATIVE_LIMIT_USAGE_END
+
+23:03:01.44 (51544897)|CODE_UNIT_FINISHED|acmens.BridgeTraceAccountTrigger on Account trigger event BeforeUpdate|__sfdc_trigger/acmens/BridgeTraceAccountTrigger
+23:03:01.88 (88190003)|CODE_UNIT_STARTED|[EXTERNAL]|01qjV000001CMoz|acmens.BridgeTraceAccountTrigger on Account trigger event AfterUpdate|__sfdc_trigger/acmens/BridgeTraceAccountTrigger
+23:03:01.88 (88277213)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:03:01.88 (88312523)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:03:01.88 (88381953)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:03:01.88 (88398393)|VARIABLE_SCOPE_BEGIN|[1]|this|acmens.BridgeTraceAccountTrigger|true|false
+23:03:01.88 (88494144)|VARIABLE_ASSIGNMENT|[1]|this|{}|0x3ef1b078
+23:03:01.88 (88522654)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:03:01.88 (88528894)|VARIABLE_SCOPE_BEGIN|[1]|this|acmens.BridgeTraceAccountTrigger|true|false
+23:03:01.88 (88550894)|VARIABLE_ASSIGNMENT|[1]|this|{}|0x3ef1b078
+23:03:01.88 (88556574)|STATEMENT_EXECUTE|[1]
+23:03:01.88 (88569084)|STATEMENT_EXECUTE|[4]
+23:03:01.88 (88569884)|STATEMENT_EXECUTE|[5]
+23:03:01.88 (88621604)|METHOD_ENTRY|[5]|01pjV000005DFnx|acmens.BridgeTraceAccountHandler.afterUpdate(List<Account>, Map<Id,Account>)
+23:03:01.88 (88646264)|VARIABLE_SCOPE_BEGIN|[29]|news|List<Account>|true|false
+23:03:01.88 (89226305)|VARIABLE_ASSIGNMENT|[29]|news|[{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}]|0x318cbc78
+23:03:01.88 (89239115)|VARIABLE_SCOPE_BEGIN|[29]|olds|Map<Id,Account>|true|false
+23:03:01.88 (89640456)|VARIABLE_ASSIGNMENT|[29]|olds|{"001jV00000L8HHJQA3":{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}}|0x58c6e373
+23:03:01.88 (91648140)|SYSTEM_MODE_ENTER|false
+23:03:01.88 (91660570)|HEAP_ALLOCATE|[30]|Bytes:5
+23:03:01.88 (91669870)|STATEMENT_EXECUTE|[29]
+23:03:01.88 (91670800)|STATEMENT_EXECUTE|[30]
+23:03:01.88 (91687020)|HEAP_ALLOCATE|[30]|Bytes:4
+23:03:01.88 (91760101)|SYSTEM_CONSTRUCTOR_ENTRY|[30]|<init>(Integer)
+23:03:01.88 (91802971)|SYSTEM_CONSTRUCTOR_EXIT|[30]|<init>(Integer)
+23:03:01.88 (91814211)|VARIABLE_SCOPE_BEGIN|[30]|tierChanged|Set<Id>|true|false
+23:03:01.88 (91845171)|VARIABLE_ASSIGNMENT|[30]|tierChanged|[]|0xa9cdc1
+23:03:01.88 (91848361)|STATEMENT_EXECUTE|[31]
+23:03:01.88 (91852541)|HEAP_ALLOCATE|[31]|Bytes:4
+23:03:01.88 (91865121)|SYSTEM_CONSTRUCTOR_ENTRY|[31]|<init>(Integer)
+23:03:01.88 (91871821)|SYSTEM_CONSTRUCTOR_EXIT|[31]|<init>(Integer)
+23:03:01.88 (91876991)|VARIABLE_SCOPE_BEGIN|[31]|revenueChanged|Set<Id>|true|false
+23:03:01.88 (91887971)|VARIABLE_ASSIGNMENT|[31]|revenueChanged|[]|0x5492ded0
+23:03:01.88 (91901211)|SYSTEM_METHOD_ENTRY|[32]|List<Account>.iterator()
+23:03:01.88 (91911861)|SYSTEM_METHOD_EXIT|[32]|List<Account>.iterator()
+23:03:01.88 (91921291)|SYSTEM_METHOD_ENTRY|[32]|system.ListIterator.hasNext()
+23:03:01.88 (91926631)|HEAP_ALLOCATE|[32]|Bytes:5
+23:03:01.88 (91931961)|SYSTEM_METHOD_EXIT|[32]|system.ListIterator.hasNext()
+23:03:01.88 (91948361)|VARIABLE_SCOPE_BEGIN|[32]|a|Account|true|false
+23:03:01.88 (92353762)|VARIABLE_ASSIGNMENT|[32]|a|{"LastModifiedDate":"2026-11-15T07:03:01.000Z","IsDeleted":false,"acmens__Bridge_Trace_Tier__c":"Silver","acmens__Bridge_Trace_Async__c":"Async flow path ran","Rating":"Warm","SystemModstamp":"2026-11-15T07:03:01.000Z","Name":"Bridge Trace Acme","Industry":"Consulting","CleanStatus":"Pending","CreatedById":"005000000000001","acmens__Bridge_Checkbox__c":false,"acmens__Bridge_Trace_Score__c":25,"OwnerId":"005000000000001","acmens__Bridge_Trace_Note__c":"Bridge Trace Acme /  (4 more) ...","CreatedDate":"2026-11-14T23:07:14.000Z","Id":"001jV00000L8HHJQA3","LastModifiedById":"005000000000002","AnnualRevenue":2500000}|0x3b20724a
+23:03:01.88 (92360922)|STATEMENT_EXECUTE|[32]
+23:03:01.88 (92395252)|SYSTEM_METHOD_ENTRY|[33]|Map<Id,Account>.get(Object)
+23:03:01.88 (92407892)|SYSTEM_METHOD_EXIT|[33]|Map<Id,Account>.get(Object)
+23:03:01.88 (92421602)|STATEMENT_EXECUTE|[33]
+23:03:01.88 (92434402)|SYSTEM_METHOD_ENTRY|[36]|Map<Id,Account>.get(Object)
+23:03:01.88 (92440392)|SYSTEM_METHOD_EXIT|[36]|Map<Id,Account>.get(Object)
+23:03:01.88 (92458162)|SYSTEM_METHOD_ENTRY|[36]|Decimal.compareTo(Decimal)
+23:03:01.88 (92470472)|SYSTEM_METHOD_EXIT|[36]|Decimal.compareTo(Decimal)
+23:03:01.88 (92472142)|STATEMENT_EXECUTE|[36]
+23:03:01.88 (92476832)|SYSTEM_METHOD_ENTRY|[32]|system.ListIterator.hasNext()
+23:03:01.88 (92480352)|HEAP_ALLOCATE|[32]|Bytes:5
+23:03:01.88 (92485292)|SYSTEM_METHOD_EXIT|[32]|system.ListIterator.hasNext()
+23:03:01.88 (92494892)|VARIABLE_ASSIGNMENT|[32]|a|null|
+23:03:01.88 (92502922)|SYSTEM_METHOD_ENTRY|[40]|Set<Id>.isEmpty()
+23:03:01.88 (92511262)|SYSTEM_METHOD_EXIT|[40]|Set<Id>.isEmpty()
+23:03:01.88 (92514222)|STATEMENT_EXECUTE|[40]
+23:03:01.88 (92517192)|SYSTEM_METHOD_ENTRY|[48]|Set<Id>.isEmpty()
+23:03:01.88 (92521242)|SYSTEM_METHOD_EXIT|[48]|Set<Id>.isEmpty()
+23:03:01.88 (92523542)|STATEMENT_EXECUTE|[48]
+23:03:01.88 (92527852)|SYSTEM_MODE_EXIT|false
+23:03:01.88 (92535622)|METHOD_EXIT|[5]|01pjV000005DFnx|acmens.BridgeTraceAccountHandler.afterUpdate(List<Account>, Map<Id,Account>)
+23:03:01.92 (92543682)|CUMULATIVE_LIMIT_USAGE
+23:03:01.92 (92543682)|LIMIT_USAGE_FOR_NS|(default)|
+  Number of SOQL queries: 0 out of 200
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 0 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 0 out of 10000
+  Maximum CPU time: 0 out of 60000
+  Maximum heap size: 0 out of 25000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:03:01.92 (92543682)|LIMIT_USAGE_FOR_NS|acmens|
+  Number of SOQL queries: 0 out of 200
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 1 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 1 out of 10000
+  Maximum CPU time: 11 out of 60000
+  Maximum heap size: 0 out of 25000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:03:01.92 (92543682)|TOTAL_EMAIL_RECIPIENTS_QUEUED|0
+23:03:01.92 (92543682)|CUMULATIVE_LIMIT_USAGE_END
+
+23:03:01.88 (92757473)|CODE_UNIT_FINISHED|acmens.BridgeTraceAccountTrigger on Account trigger event AfterUpdate|__sfdc_trigger/acmens/BridgeTraceAccountTrigger
+23:03:01.7 (106871362)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Async_Note__CONDITIONS_RESULT|true
+23:03:01.7 (107517944)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|$Record|{Id=001jV00000L8HHJQA3, IsDeleted=false, MasterRecordId=null, Name=Bridge Trace Acme, Type=null, ParentId=null, BillingStreet=null, BillingCity=null, BillingState=null, BillingPostalCode=null, BillingCountry=null, BillingStateCode=null, BillingCountryCode=null, BillingLatitude=null, BillingLongitude=null, BillingGeocodeAccuracy=null, ShippingStreet=null, ShippingCity=null, ShippingState=null, ShippingPostalCode=null, ShippingCountry=null, ShippingStateCode=null, ShippingCountryCode=null, ShippingLatitude=null, ShippingLongitude=null, ShippingGeocodeAccuracy=null, Phone=null, Fax=null, AccountNumber=null, Website=null, PhotoUrl=null, Sic=null, Industry=Consulting, AnnualRevenue=2500000.0, NumberOfEmployees=null, Ownership=null, TickerSymbol=null, Description=null, Rating=Warm, Site=null, OwnerId=005000000000001, CreatedDate=2026-11-14 23:07:14, CreatedById=005000000000001, LastModifiedDate=2026-11-15 07:03:01, LastModifiedById=005000000000002, SystemModstamp=2026-11-15 07:03:01, LastActivityDate=null, LastViewedDate=null, LastReferencedDate=null, Jigsaw=null, JigsawCompanyId=null, CleanStatus=Pending, AccountSource=null, DunsNumber=null, Tradestyle=null, NaicsCode=null, NaicsDesc=null, YearStarted=null, SicDesc=null, DandbCompanyId=null, OperatingHoursId=null, Tier=null, acmens__CustomerPriority__c=null, acmens__SLA__c=null, acmens__Active__c=null, acmens__NumberofLocations__c=null, acmens__UpsellOpportunity__c=null, acmens__SLASerialNumber__c=null, acmens__SLAExpirationDate__c=null, acmens__Bridge_Category__c=null, acmens__Bridge_Checkbox__c=false, acmens__Bridge_DateTime__c=null, acmens__Bridge_Multi__c=null, acmens__Bridge_Subcategory__c=null, acmens__Bridge_Trace_Async__c=Async flow path ran, acmens__Bridge_Trace_Note__c=Bridge Trace Acme / Warm, acmens__Bridge_Trace_Score__c=25.0, acmens__Bridge_Trace_Tier__c=Silver}
+23:03:01.7 (107536674)|FLOW_VALUE_ASSIGNMENT|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Async_Note|true
+23:03:01.7 (107712834)|FLOW_BULK_ELEMENT_LIMIT_USAGE|1 DML statements, total 1 out of 150
+23:03:01.7 (107718664)|FLOW_BULK_ELEMENT_LIMIT_USAGE|1 DML rows, total 1 out of 10000
+23:03:01.7 (107722564)|FLOW_BULK_ELEMENT_LIMIT_USAGE|20 ms CPU time, total 24 out of 65000
+23:03:01.7 (107770264)|FLOW_BULK_ELEMENT_LIMIT_USAGE|997 bytes heap size, total 997 out of 25000000
+23:03:01.7 (107797324)|FLOW_BULK_ELEMENT_END|FlowRecordUpdate|Async_Note|1|94
+23:03:01.7 (108175355)|FLOW_START_INTERVIEWS_END|1
+23:03:01.7 (108365046)|FLOW_INTERVIEW_FINISHED|94853cb38ac8407f41b72ef501c1a1dcfaeb4d-4a63|Bridge Trace Account After Save
+23:03:01.7 (108392776)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOQL queries: 0 out of 200
+23:03:01.7 (108398536)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOQL query rows: 0 out of 50000
+23:03:01.7 (108401206)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|SOSL queries: 0 out of 20
+23:03:01.7 (108403746)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|DML statements: 1 out of 150
+23:03:01.7 (108406216)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|DML rows: 1 out of 10000
+23:03:01.7 (108408526)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|CPU time in ms: 24 out of 65000
+23:03:01.7 (108428416)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Heap size in bytes: 997 out of 25000000
+23:03:01.7 (108430956)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Callouts: 0 out of 100
+23:03:01.7 (108433356)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Email invocations: 0 out of 10
+23:03:01.7 (108435216)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Future calls: 0 out of 50
+23:03:01.7 (108437046)|FLOW_INTERVIEW_FINISHED_LIMIT_USAGE|Jobs in queue: 0 out of 50
+23:03:01.149 (149193312)|USER_INFO|[EXTERNAL]|005000000000002|automation.user@example.com|(GMT+00:00) Coordinated Universal Time (UTC)|GMT+00:00
+23:03:01.149 (149270162)|EXECUTION_STARTED
+23:03:01.149 (149293632)|CODE_UNIT_STARTED|[EXTERNAL]|DuplicateDetector
+23:03:01.149 (149301112)|DUPLICATE_DETECTION_BEGIN
+23:03:01.149 (149356812)|DUPLICATE_DETECTION_RULE_INVOCATION|DuplicateRuleId:0BmjV000001DxCz|DuplicateRuleName:Standard Account Duplicate Rule|DmlType:UPDATE
+23:03:01.149 (183223560)|DUPLICATE_DETECTION_END
+23:03:01.149 (183239700)|CODE_UNIT_FINISHED|DuplicateDetector
+23:03:01.149 (183252061)|EXECUTION_FINISHED
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING_BEGIN
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING|No profiling information for SOQL operations
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING|No profiling information for SOSL operations
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING|No profiling information for DML operations
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING|method invocations|
+External entry point: public void invoke(): executed 1 time in 4 ms
+Trigger.acmens.BridgeTraceAccountTrigger: line 5, column 1: public static void afterUpdate(List<Account>, Map<Id,Account>): executed 1 time in 4 ms
+Trigger.acmens.BridgeTraceAccountTrigger: line 3, column 1: public static void beforeUpdate(List<Account>, Map<Id,Account>): executed 1 time in 3 ms
+Class.acmens.BridgeTraceAccountHandler.afterUpdate: line 32, column 1: global public System.Iterator iterator(): executed 3 times in 0 ms
+Class.acmens.BridgeTraceAccountHandler.afterUpdate: line 48, column 1: global public Boolean isEmpty(): executed 1 time in 0 ms
+Class.acmens.BridgeTraceAccountHandler.afterUpdate: line 33, column 1: global public Object get(Object): executed 1 time in 0 ms
+Class.acmens.BridgeTraceAccountHandler.afterUpdate: line 36, column 1: global public Object get(Object): executed 2 times in 0 ms
+Class.acmens.BridgeTraceAccountHandler.beforeUpdate: line 6, column 1: global public System.Iterator iterator(): executed 3 times in 0 ms
+Class.acmens.BridgeTraceAccountHandler.beforeUpdate: line 7, column 1: global public Object get(Object): executed 1 time in 0 ms
+Class.acmens.BridgeTraceAccountHandler.beforeUpdate: line 8, column 1: public Boolean contains(String): executed 1 time in 0 ms
+Class.acmens.BridgeTraceAccountHandler.afterUpdate: line 40, column 1: global public Boolean isEmpty(): executed 1 time in 0 ms
+
+23:03:01.213 (213782345)|CUMULATIVE_PROFILING_END

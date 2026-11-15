@@ -5,6 +5,12 @@
 // sessions) connect to /peer with a shared token and have their requests
 // relayed. If the hub process exits, a peer takes over the port.
 //
+// Sessions: every process has a session ({id, label}) that goes with each of
+// its requests, so the extension gives each session its own lane (tabs,
+// default tab, window). The hub tells the extension when a peer session
+// disconnects ("session-end") and, after the extension (re)connects, which
+// sessions are still alive ("sessions"), so lanes of finished sessions close.
+//
 // Security:
 //  - binds to 127.0.0.1 only and checks the Host header (DNS rebinding)
 //  - /ext only accepts the extension's chrome-extension:// origin, so web
@@ -58,10 +64,27 @@ const safeEqual = (a, b) => {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
 
+// A session for this process. label: shown in the browser (tab group title);
+// keep: the lane survives this process exiting (CLI calls, one process each).
+// agent: an AI agent session (MCP server): writes need a brief, the charter
+// must be read first. People (CLI, test suite) are not agents.
+export function makeSession({ label, id, keep = false, agent = false } = {}) {
+  const name = String(label || path.basename(process.cwd()) || 'Claude').slice(0, 30);
+  return { id: id || `${name}-${crypto.randomBytes(3).toString('hex')}`, label: name, keep, ...(agent ? { agent: true } : {}) };
+}
+
+// How long the hub waits after the extension connects before telling it
+// which sessions are alive (peers reconnecting after a hub takeover need a moment).
+const SESSIONS_GRACE_MS = Number(process.env.BROWSER_BRIDGE_SESSIONS_GRACE_MS || 8000);
+// How long a request waits for the extension to connect.
+const EXT_WAIT_MS = Number(process.env.BROWSER_BRIDGE_EXT_WAIT_MS || 35_000);
+
 export class Bridge extends EventEmitter {
-  constructor({ port = 17345, token = loadToken(), allowedOrigins = [] } = {}) {
+  constructor({ port = 17345, token = loadToken(), allowedOrigins = [], session = makeSession() } = {}) {
     super();
     this.port = port;
+    this.session = session;
+    this.sessions = new Map(); // hub: session id -> { label, keep, ws (null = this process), since }
     this.token = token;
     this.allowedOrigins = new Set([`chrome-extension://${EXTENSION_ID}`, ...allowedOrigins]);
     this.role = 'starting';
@@ -119,6 +142,7 @@ export class Bridge extends EventEmitter {
       this.server = server;
       this.wss = wss;
       this.role = 'hub';
+      this.sessions.set(this.session.id, { ...this.session, ws: null, since: Date.now() });
       log(`hub listening on 127.0.0.1:${this.port}`);
       this.emit('role', 'hub');
     });
@@ -145,13 +169,62 @@ export class Bridge extends EventEmitter {
         this.activeExt = id; // most recent connection wins
         log(`extension connected: ${msg.browser} ${msg.version} (${id})`);
         this.emit('extension', id);
+        // once peers had time to reconnect, tell the extension which sessions are alive
+        clearTimeout(rec.sessionsTimer);
+        rec.sessionsTimer = setTimeout(() => this.#sendExt(id, { type: 'sessions', live: [...this.sessions.keys()] }), SESSIONS_GRACE_MS);
       } else if (msg.type === 'ping') {
         ws.send('{"type":"pong"}');
       } else if (msg.type === 'response') {
         this.#settle(msg);
+      } else if (msg.type === 'clear-org-cache') {
+        // popup: "Clear cache" or "Revoke" for an org (or everything)
+        const dir = path.join(STATE_DIR, 'orgs', ...(msg.orgHost ? [String(msg.orgHost).replace(/[^\w.-]/g, '_')] : []));
+        if (dir.startsWith(path.join(STATE_DIR, 'orgs'))) fs.rmSync(dir, { recursive: true, force: true });
+        log(`org setup cache cleared: ${msg.orgHost || 'all orgs'}`);
+      } else if (msg.type === 'ext-request' && msg.method === 'debuglog') {
+        // the popup's Debug logs (the developer): status, start, stop, remove,
+        // and the setup steps (orgs -> plan -> setup). Only the extension's own
+        // connection reaches this; no MCP tool offers setup or start to Claude.
+        const reply = (o) => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'ext-response', id: msg.id, ...o }));
+        const action = String(msg.params?.action || 'status');
+        const p = msg.params || {};
+        const run = {
+          status: (dl) => dl.stateView(), start: (dl) => dl.start(Number(p.minutes) || 30), stop: (dl) => dl.stop(), remove: (dl) => dl.remove(),
+          orgs: (dl) => dl.listOrgs(), plan: (dl) => dl.plan(String(p.username || '')),
+          setup: (dl) => (p.confirmed === true ? dl.create({ username: String(p.username || ''), minutes: Number(p.minutes) || 30 }) : Promise.reject(new Error('not confirmed'))),
+          // the developer's own search over recent logs (comma-separated terms)
+          search: async (dl) => { const { loadProject } = await import('./project.js'); return dl.searchLogs({ terms: p.terms, minutes: p.minutes, projectRoot: loadProject(process.cwd())?.root }); },
+          // Capture my action: start (logging on, the record and the expected changes), check
+          // (the logs since then, with hints), add a user, send the ticked logs, download one, end
+          capture: async (dl) => {
+            const { loadProject } = await import('./project.js');
+            const projectRoot = loadProject(process.cwd())?.root;
+            const step = String(p.step || 'view');
+            // the popup's capture: start (turns logging on), stop, check (new logs), search (instant;
+            // sync fetches new ones), explain one log, send to Claude, download, end; add a user to log
+            const by = 'popup';
+            if (step === 'start') return dl.captureStart({ by, recordId: p.recordId, terms: p.terms, minutes: Number(p.minutes) || 30, projectRoot });
+            if (step === 'stop') return dl.captureStop({ by });
+            if (step === 'check') return dl.captureCheck({ by, projectRoot });
+            if (step === 'search') return dl.captureSearch({ by, terms: p.terms, sync: p.sync === true });
+            if (step === 'explain') return dl.captureExplain({ id: String(p.id || ''), projectRoot });
+            if (step === 'send' || step === 'select') return dl.captureSend({ by, ids: p.ids, projectRoot });
+            if (step === 'adduser') return dl.addUser({ user: p.user });
+            if (step === 'log') return dl.captureLog({ id: String(p.id || '') });
+            if (step === 'end') return dl.captureEnd();
+            return dl.captureView();
+          },
+        }[action];
+        if (!run) { reply({ error: 'not allowed from the popup' }); return; }
+        // loaded fresh when the file changed, so a fix applies without restarting the hub
+        const file = new URL('./debuglog.js', import.meta.url);
+        let v = 0;
+        try { v = fs.statSync(file).mtimeMs; } catch { /* keep 0 */ }
+        import(`${file.href}?v=${v}`).then(async (dl) => reply({ result: await run(dl) })).catch((e) => reply({ error: e.message, lines: e.lines }));
       }
     });
     ws.on('close', () => {
+      clearTimeout(rec.sessionsTimer);
       this.extensions.delete(id);
       if (this.activeExt === id) this.activeExt = [...this.extensions.keys()].pop() || null;
       log(`extension disconnected (${id})`);
@@ -161,12 +234,28 @@ export class Bridge extends EventEmitter {
     });
   }
 
+  #sendExt(extId, obj) {
+    const ext = this.extensions.get(extId);
+    if (ext?.ws.readyState !== 1) return;
+    const frame = JSON.stringify(obj);
+    rawLog('mcp->ext', extId, frame);
+    ext.ws.send(frame);
+  }
+
+  #addSession(session, ws) {
+    if (!session?.id) return;
+    const id = String(session.id);
+    if (!this.sessions.has(id)) this.sessions.set(id, { id, label: String(session.label || id), keep: !!session.keep, ws, since: Date.now() });
+  }
+
   #onPeer(ws) {
     this.peers.add(ws);
     ws.on('message', async (data) => {
       let msg;
       try { msg = JSON.parse(data); } catch { return; }
+      if (msg.type === 'hello') { this.#addSession(msg.session, ws); return; }
       if (msg.type !== 'request') return;
+      this.#addSession(msg.params?.__session, ws);
       const reply = (o) => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'response', id: msg.id, ...o }));
       try {
         reply({ result: await this.#hubRequest(msg.method, msg.params, msg.timeoutMs) });
@@ -174,7 +263,15 @@ export class Bridge extends EventEmitter {
         reply({ error: { message: e.message } });
       }
     });
-    ws.on('close', () => this.peers.delete(ws));
+    ws.on('close', () => {
+      this.peers.delete(ws);
+      // that process is gone: its sessions' lanes in the browser end
+      for (const [sid, s] of this.sessions) {
+        if (s.ws !== ws) continue;
+        this.sessions.delete(sid);
+        if (!s.keep && this.activeExt) this.#sendExt(this.activeExt, { type: 'session-end', session: sid, reason: 'the session disconnected' });
+      }
+    });
   }
 
   #settle(msg) {
@@ -187,6 +284,7 @@ export class Bridge extends EventEmitter {
   hubStatus() {
     return {
       role: 'hub', port: this.port, peers: this.peers.size,
+      sessions: [...this.sessions.values()].map((s) => ({ session: s.label, id: s.id, you: s.id === this.session.id, keep: s.keep || undefined })),
       extensions: [...this.extensions.entries()].map(([id, e]) => ({ id, active: id === this.activeExt, ...e.info, connectedFor: `${Math.round((Date.now() - e.since) / 1000)}s` })),
     };
   }
@@ -207,7 +305,7 @@ export class Bridge extends EventEmitter {
       this.activeExt = params.id;
       return this.hubStatus();
     }
-    if (!(await this.#waitForExtension(params.__waitMs ?? 35_000))) {
+    if (!(await this.#waitForExtension(params.__waitMs ?? EXT_WAIT_MS))) {
       throw new Error(
         'Browser extension is not connected. Make sure Chrome/Edge is running with the "SF Test Bridge" extension loaded '
         + '(chrome://extensions -> Developer mode -> Load unpacked -> the extension/ folder). It reconnects every ~30s; '
@@ -246,7 +344,12 @@ export class Bridge extends EventEmitter {
     if (this.closed) return;
     this.role = 'peer';
     const ws = new WebSocket(`ws://127.0.0.1:${this.port}/peer`, { headers: { 'x-bridge-token': this.token } });
-    ws.on('open', () => { this.hubWs = ws; this.retries = 0; log(`connected to existing hub on port ${this.port} as peer`); this.emit('role', 'peer'); });
+    ws.on('open', () => {
+      this.hubWs = ws; this.retries = 0;
+      ws.send(JSON.stringify({ type: 'hello', session: this.session }));
+      log(`connected to existing hub on port ${this.port} as peer`);
+      this.emit('role', 'peer');
+    });
     ws.on('message', (data) => {
       let msg;
       try { msg = JSON.parse(data); } catch { return; }
@@ -273,6 +376,7 @@ export class Bridge extends EventEmitter {
 
   // ---------------- public ----------------
   async request(method, params = {}, timeoutMs = 60_000) {
+    params = { ...params, __session: this.session };
     for (let i = 0; this.role === 'starting' && i < 50; i++) await new Promise((r) => setTimeout(r, 100));
     if (this.role === 'hub') return this.#hubRequest(method, params, timeoutMs);
     if (this.role === 'peer') {

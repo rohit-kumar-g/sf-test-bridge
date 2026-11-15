@@ -1,6 +1,6 @@
 {
   "name": "sf-test-bridge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "MCP server that lets Claude Code (or any MCP client) test Salesforce in your real Chrome/Edge, with your existing logins, through the SF Test Bridge extension.",
   "type": "module",
@@ -8,7 +8,7 @@
   "bin": { "sf-test-bridge": "src/index.js" },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node ../tests/hub-cancel.test.mjs && node ../tests/steps-stale-alerts.test.mjs"
+    "test": "node ../tests/hub-cancel.test.mjs && node ../tests/steps-stale-alerts.test.mjs && node ../tests/site-policy.test.mjs && node ../tests/hub-sessions.test.mjs && node ../tests/charter-gate.test.mjs && node ../tests/project.test.mjs && node ../tests/orginfo.test.mjs && node ../tests/changes.test.mjs && node ../tests/debuglog.test.mjs && node ../tests/trace.test.mjs && node ../tests/capture.test.mjs && node ../tests/sfdirect.test.mjs"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

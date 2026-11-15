@@ -4,7 +4,19 @@
 //
 // Safety model: Claude may only act on tabs it opened itself (and popups/new
 // tabs those tabs open) or tabs the user explicitly shared from the popup.
+// Sessions: every Claude session (MCP server process) gets its own lane - the
+// tabs it opened, its default tab, its window and tab group. A session cannot
+// act on another session's tabs, so several sessions work side by side. A lane
+// ends when its session disconnects, calls browser_end_session, or is idle.
+// Briefs: an AI agent session (MCP server) must record a brief (org, target,
+// expected result, data: read-only | write) with browser_brief before any
+// command that changes data or the page; with a brief, the lane also stays
+// in that org. People (CLI, test suite) are not gated.
 // A "Pause" switch in the popup rejects every command and detaches debuggers.
+// Site lists (popup): Claude may only act on pages whose URL is in the allow
+// list (when one is set) and not in the block list - see sitepolicy.js.
+
+importScripts('sitepolicy.js');
 
 const DEFAULT_PORT = 17345;
 const PING_MS = 20_000;
@@ -24,31 +36,186 @@ const S = {
   port: DEFAULT_PORT,
   paused: false,
   openMode: 'window', // 'window' = dedicated Claude window, 'tab' = current window
+  allowList: [], // site patterns Claude may act on (empty = any site)
+  blockList: [], // site patterns Claude may never act on (wins over allowList)
+  sitesDefaultsVersion: 1, // SitePolicy.DEFAULTS_VERSION the lists were last reset to
+  orgConsent: {}, // "<org key>|<partition>" -> { host, at }: orgs whose setup Claude may read (UI API)
+  orgTypeOverride: {}, // "<org key>|<partition>" -> 'production' | 'sandbox' | 'developer' | 'scratch' (set by the user)
+  prodWrites: {}, // "<org key>|<partition>" -> { host, until }: user allowed writes in that production org until
+  managed: {}, // Chrome enterprise policy (chrome.storage.managed): allowList, blockList, productionWrites, orgSetupReading
+  closeOnEnd: false, // when a lane ends: close its tabs (true) or only release them
+  laneIdleMin: 30, // end a lane after this many idle minutes (0 = never)
   // tab ownership: chrome.storage.local so it survives extension reloads;
   // cleared on browser startup because tab ids are reused across sessions.
   controlled: {}, // tabId -> 'claude' | 'user' | 'child'
-  claudeWindowId: null,
-  groups: {}, // windowId -> groupId
-  lastTabId: null,
+  owner: {}, // tabId -> lane id (session); missing = shared by the user, not claimed yet
+  lanes: {}, // lane id -> { id, label, keep, lastTabId, windowId, color, since, lastSeen }
+  groups: {}, // `${windowId}|${laneId}` -> groupId
   // per extension load (storage.session is wiped by a reload): stale content
   // scripts from a previous load are replaced instead of reused.
   boot: null,
 };
-const TAB_KEYS = ['controlled', 'claudeWindowId', 'groups', 'lastTabId'];
+const TAB_KEYS = ['controlled', 'owner', 'lanes', 'groups'];
 const ready = (async () => {
-  const l = await chrome.storage.local.get(['port', 'paused', 'openMode', ...TAB_KEYS]);
+  const l = await chrome.storage.local.get(['port', 'paused', 'openMode', 'allowList', 'blockList', 'sitesDefaultsVersion', 'orgConsent', 'orgTypeOverride', 'prodWrites', 'closeOnEnd', 'laneIdleMin', ...TAB_KEYS]);
   Object.assign(S, Object.fromEntries(Object.entries(l).filter(([, v]) => v !== undefined)));
+  // First start (or first start since site lists exist): use the defaults.
+  // After that the user's lists are kept, even if they emptied them.
+  const fresh = {};
+  if (l.allowList === undefined) fresh.allowList = S.allowList = [...SitePolicy.DEFAULT_ALLOW];
+  if (l.blockList === undefined) fresh.blockList = S.blockList = [...SitePolicy.DEFAULT_BLOCK];
+  if (l.allowList === undefined && l.blockList === undefined) fresh.sitesDefaultsVersion = S.sitesDefaultsVersion = SitePolicy.DEFAULTS_VERSION;
+  if (Object.keys(fresh).length) await chrome.storage.local.set(fresh);
+  S.managed = await readManaged();
+  compileSites();
+  ({ approvals: S.approvals = {} } = await chrome.storage.session.get('approvals'));
   let { boot } = await chrome.storage.session.get('boot');
   if (!boot) { boot = crypto.randomUUID(); await chrome.storage.session.set({ boot }); }
   S.boot = boot;
   // drop tabs that no longer exist
   const live = new Set((await chrome.tabs.query({})).map((t) => t.id));
   for (const id of Object.keys(S.controlled)) if (!live.has(Number(id))) delete S.controlled[id];
+  for (const id of Object.keys(S.owner)) if (!S.controlled[id]) delete S.owner[id];
 })();
 const saveSession = () => chrome.storage.local.set(Object.fromEntries(TAB_KEYS.map((k) => [k, S[k]])));
+// ---------------------------------------------------------------------------
+// site allow / block lists
+// ---------------------------------------------------------------------------
+const sites = { allow: SitePolicy.compile([]), block: SitePolicy.compile([]) };
+function compileSites() {
+  // lists set by the organization's policy replace the user's own
+  sites.allow = SitePolicy.compile(Array.isArray(S.managed.allowList) ? S.managed.allowList : S.allowList);
+  sites.block = SitePolicy.compile(Array.isArray(S.managed.blockList) ? S.managed.blockList : S.blockList);
+}
+// ---------------------------------------------------------------------------
+// organization policy (Chrome enterprise: storage.managed, see managed_schema.json)
+// ---------------------------------------------------------------------------
+async function readManaged() {
+  try { return (await chrome.storage.managed.get(null)) || {}; } catch { return {}; }
+}
+chrome.storage.onChanged.addListener(async (_changes, area) => {
+  if (area !== 'managed') return;
+  await ready;
+  S.managed = await readManaged();
+  compileSites();
+});
+const siteCheck = (url) => SitePolicy.check(url, sites.allow, sites.block);
+const siteRefusal = (url, why) => `${url} is outside the sites the user allows Claude to work on (${why}). `
+  + 'Nothing was done on that page. The user manages the allowed and blocked sites in the SF Test Bridge popup.';
+class SiteBlocked extends Error {}
+function assertSite(url) {
+  const c = siteCheck(url);
+  if (!c.allowed) throw new SiteBlocked(siteRefusal(url, c.reason));
+}
+// ---------------------------------------------------------------------------
+// org setup through the UI API (read-only, the user's own browser session)
+// ---------------------------------------------------------------------------
+// The service worker calls the org's Lightning host with the browser's own
+// cookies (no token is read or handled). Only GET, only these paths. Works
+// for users with "API Enabled"; others get 403 API_DISABLED_FOR_ORG and the
+// tool falls back to reading the page. Live-tested: these reads don't count
+// against the org's daily API limit.
+const UIAPI_PATHS = [
+  /^ui-api\/object-info$/,
+  /^ui-api\/object-info\/\w+$/,
+  /^ui-api\/object-info\/batch\/[\w,]+$/,
+  /^ui-api\/object-info\/\w+\/picklist-values\/\w{15,18}(\/\w+)?$/,
+  /^ui-api\/layout\/\w+\?[\w=&]+$/,
+  /^ui-api\/record-defaults\/create\/\w+(\?[\w=&]+)?$/,
+  /^ui-api\/list-info\/\w+$/,
+  /^ui-api\/related-list-info\/\w+$/,
+  /^chatter\/users\/me$/,
+  /^connect\/organization$/,
+];
+const orgKeyOf = (info) => `${info.key}|${info.partition}`;
+// Org type of a URL: from its address, unless the user corrected it in the popup.
+function orgTypeOf(url) {
+  const info = SitePolicy.orgInfo(url || '');
+  if (!info) return null;
+  const set = S.orgTypeOverride[orgKeyOf(info)];
+  return { ...info, type: set || info.type, source: set ? 'set by the user' : 'from the address', key: orgKeyOf(info) };
+}
+
+// The org's Lightning host (the cookie session there is what the UI API accepts).
+function lightningHost(urlOrHost) {
+  const info = SitePolicy.orgInfo(urlOrHost);
+  if (!info) return null;
+  const host = info.host
+    .replace(/\.my\.salesforce-setup\.com$/, '.lightning.force.com')
+    .replace(/\.my\.salesforce\.com$/, '.lightning.force.com')
+    .replace(/--\w+\.((sandbox|develop|scratch|patch|demo|trailblaze|free)\.)?(vf|file)\.force\.com$/, (m, p) => `.${p || ''}lightning.force.com`);
+  return /\.lightning\.force\.com$/.test(host) ? { ...info, host } : null;
+}
+// Which org: explicit, else the brief's org, else the session's current tab.
+async function orgFor(p) {
+  const lane = laneOf(p);
+  let src = p.org || lane.brief?.org;
+  if (!src && lane.lastTabId != null && S.controlled[lane.lastTabId]) src = (await chrome.tabs.get(lane.lastTabId).catch(() => null))?.url;
+  if (!src) throw new Error('Which org? Pass org (its URL), record a brief, or open a page of the org first.');
+  const org = lightningHost(src);
+  if (!org) throw new Error(`${src} is not a Salesforce org address.`);
+  assertBriefOrg(lane, `https://${org.host}/`);
+  if (!siteCheck(`https://${org.host}/lightning/page/home`).allowed) throw new SiteBlocked(siteRefusal(`https://${org.host}`, siteCheck(`https://${org.host}/lightning/page/home`).reason));
+  if (S.managed.orgSetupReading === false) {
+    throw new Error('Reading org setup is turned off by your organization\'s policy. Read the page itself instead (browser_snapshot, browser_options).');
+  }
+  if (!S.orgConsent[orgKeyOf(org)]) {
+    throw new Error(`The user has not allowed Claude to read the setup of ${org.host} (fields, picklists, layouts). Ask them to allow it: extension popup > Control > "Let Claude read this org's setup". Until then, read the page itself (browser_snapshot, browser_options).`);
+  }
+  return org;
+}
+const apiVersions = new Map(); // host -> 'v68.0'
+async function apiVersion(host) {
+  if (apiVersions.has(host)) return apiVersions.get(host);
+  let v = null;
+  try {
+    const r = await fetch(`https://${host}/services/data/`, { credentials: 'include' });
+    const list = await r.json();
+    if (Array.isArray(list) && list.length) v = `v${list[list.length - 1].version}`;
+  } catch { /* fall back below */ }
+  if (!v) {
+    for (const n of [70, 69, 68, 67, 66, 65, 64, 62, 60, 58]) {
+      const r = await fetch(`https://${host}/services/data/v${n}.0/ui-api/object-info/User`, { credentials: 'include' }).catch(() => null);
+      if (r && r.status !== 404) { v = `v${n}.0`; break; }
+    }
+  }
+  v = v || 'v62.0';
+  apiVersions.set(host, v);
+  return v;
+}
+// One GET. Returns { status, body, errorCode, mode } where mode is
+// 'api' (answered), 'no-api-access' (user lacks API Enabled) or 'cannot'
+// (this user may not see that item: an answer, not a failure).
+async function uiApiGet(host, path) {
+  if (!UIAPI_PATHS.some((re) => re.test(path))) throw new Error(`not an allowed read-only UI API path: ${path}`);
+  const v = await apiVersion(host);
+  const r = await withTimeout(fetch(`https://${host}/services/data/${v}/${path}`, { credentials: 'include', headers: { Accept: 'application/json' } }), 30_000, `UI API ${path} timed out`);
+  let body = null;
+  try { body = await r.json(); } catch { /* not JSON */ }
+  const err = Array.isArray(body) ? body[0] : null;
+  const errorCode = err?.errorCode;
+  const mode = r.ok ? 'api' : errorCode === 'API_DISABLED_FOR_ORG' ? 'no-api-access' : [400, 403, 404].includes(r.status) ? 'cannot' : 'error';
+  return { status: r.status, version: v, mode, ...(r.ok ? { body } : { errorCode, message: err?.message || `HTTP ${r.status}` }) };
+}
+
+// A controlled tab that moves onto a blocked page (link, redirect, Lightning
+// in-app navigation): stop capturing its console and network.
+async function onTabUrl(details) {
+  if (details.frameId !== 0) return;
+  await ready;
+  if (!S.controlled[details.tabId] || siteCheck(details.url).allowed) return;
+  // A command is running on the tab (e.g. navigating away from the blocked
+  // page; App Builder changes its URL while it loads): detaching now would
+  // hide a "Leave site?" dialog from it. handle() detaches when it ends.
+  if (runs.has(details.tabId)) return;
+  if (dbg.get(details.tabId)?.attached && !dbg.get(details.tabId)?.dialog) await detach(details.tabId).catch(() => {});
+}
+chrome.webNavigation.onCommitted.addListener(onTabUrl);
+chrome.webNavigation.onHistoryStateUpdated.addListener(onTabUrl);
+
 chrome.runtime.onStartup.addListener(() => {
   chrome.storage.local.remove(TAB_KEYS);
-  Object.assign(S, { controlled: {}, claudeWindowId: null, groups: {}, lastTabId: null });
+  Object.assign(S, { controlled: {}, owner: {}, lanes: {}, groups: {} });
 });
 
 // ---------------------------------------------------------------------------
@@ -88,6 +255,12 @@ async function connect() {
     let msg;
     try { msg = JSON.parse(ev.data); } catch { return; }
     if (msg.type === 'cancel') { cancelRequest(msg.id); return; }
+    if (msg.type === 'ext-response') { const p = hubCalls.get(msg.id); if (p) { hubCalls.delete(msg.id); if (msg.error) p.reject(new Error(msg.error)); else p.resolve(msg.result); } return; }
+    // the hub saw a session disconnect
+    if (msg.type === 'session-end') { endLane(String(msg.session), { why: msg.reason || 'the session disconnected' }).catch(() => {}); return; }
+    // sessions connected to the hub right now: end lanes of sessions that are gone
+    // (e.g. the hub process itself exited and another session took over)
+    if (msg.type === 'sessions') { endMissingLanes(msg.live || []).catch(() => {}); return; }
     if (msg.type !== 'request') return;
     handle(msg.method, msg.params || {}, msg.id).then(
       (result) => send({ type: 'response', id: msg.id, result }),
@@ -102,6 +275,17 @@ async function connect() {
   };
   ws.onerror = () => { conn.lastError = `hub not reachable on 127.0.0.1:${S.port}`; };
 }
+// Ask the hub (MCP server) to do something for the popup, e.g. debug logs.
+const hubCalls = new Map();
+function hubCall(method, params, timeoutMs = 120_000) {
+  if (conn.ws?.readyState !== 1) return Promise.reject(new Error('not connected to the Claude MCP server (it runs while Claude Code has the browser server loaded)'));
+  const id = crypto.randomUUID();
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { hubCalls.delete(id); reject(new Error('the MCP server did not answer')); }, timeoutMs);
+    hubCalls.set(id, { resolve: (v) => { clearTimeout(t); resolve(v); }, reject: (e) => { clearTimeout(t); reject(e); } });
+    send({ type: 'ext-request', id, method, params });
+  });
+}
 function send(obj) {
   if (conn.ws?.readyState === 1) conn.ws.send(JSON.stringify(obj));
 }
@@ -111,9 +295,12 @@ function scheduleReconnect() {
   conn.retryMs = Math.min(conn.retryMs * 2, 15_000);
 }
 function updateBadge() {
-  const text = S.paused ? '||' : conn.connected ? 'on' : '';
+  const waiting = Object.values(S.approvals || {}).some((a) => a.status === 'pending' && Date.now() - a.at < 10 * 60_000);
+  const text = waiting ? '?' : S.paused ? '||' : conn.connected ? 'on' : '';
   chrome.action.setBadgeText({ text }).catch(() => {});
-  chrome.action.setBadgeBackgroundColor({ color: S.paused ? '#888' : '#d97757' }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ color: waiting ? '#c62828' : S.paused ? '#888' : '#d97757' }).catch(() => {});
+  if (waiting) chrome.action.setTitle({ title: 'SF Test Bridge: Claude is waiting for your approval' }).catch(() => {});
+  else chrome.action.setTitle({ title: 'SF Test Bridge' }).catch(() => {});
 }
 
 chrome.alarms.create('cbb-keepalive', { periodInMinutes: 0.5 });
@@ -125,71 +312,227 @@ connect();
 // ---------------------------------------------------------------------------
 // tab ownership
 // ---------------------------------------------------------------------------
-async function controlTab(tabId, how) {
+// ---------------------------------------------------------------------------
+// lanes (one per Claude session)
+// ---------------------------------------------------------------------------
+const LANE_COLORS = ['orange', 'blue', 'green', 'purple', 'cyan', 'pink', 'yellow', 'red', 'grey'];
+// The session a command comes from (sent by the MCP server as __session).
+// Commands without one (older MCP servers) share the lane "local".
+function laneOf(params) {
+  const s = params?.__session;
+  const id = String(s?.id || 'local');
+  let lane = S.lanes[id];
+  if (!lane) {
+    const used = new Set(Object.values(S.lanes).map((l) => l.color));
+    lane = S.lanes[id] = {
+      id, label: String(s?.label || 'Claude').slice(0, 40), keep: s ? !!s.keep : true, agent: !!s?.agent,
+      lastTabId: null, windowId: null, color: LANE_COLORS.find((c) => !used.has(c)) || 'grey', since: Date.now(),
+    };
+  }
+  lane.lastSeen = Date.now();
+  return lane;
+}
+
+// ---------------------------------------------------------------------------
+// briefs (AI agent sessions)
+// ---------------------------------------------------------------------------
+class BriefRequired extends Error {}
+// Commands that change data or the page need a brief with data: "write".
+// verb: a destructive action word (Delete, Mass Update, ...) when it is one.
+function requireWrite(params, what, verb = null) {
+  const lane = laneOf(params);
+  if (!lane.agent) return;
+  if (!lane.brief) {
+    throw new BriefRequired(`${what} changes data or the page, so it needs a brief first: call browser_brief with org, target, expected and data: "write", as agreed with the user (instructions, section 5). Reading needs no brief.`);
+  }
+  if (lane.brief.data !== 'write') {
+    throw new BriefRequired(`${what} changes data or the page, but this session's brief is read-only. Ask the user; if they agree, call browser_brief again with data: "write".`);
+  }
+  const url = params.__tabUrl || lane.brief.org;
+  assertProductionWrite(url, what);
+  if (verb) assertApproved(lane, what, verb, url);
+}
+// Destructive actions: need the user's approval in the popup (any org).
+const DESTRUCTIVE = /^(delete|mass delete|mass update|change owner|merge|convert)\b/i;
+class ApprovalNeeded extends Error {}
+const APPROVAL_MS = 2 * 60_000;
+const saveApprovals = () => chrome.storage.session.set({ approvals: S.approvals }).catch(() => {});
+// Production: writes only while the user allows them for that org (popup).
+function assertProductionWrite(url, what) {
+  const o = orgTypeOf(url);
+  if (!o || o.type !== 'production') return;
+  if (S.managed.productionWrites === 'never') {
+    throw new BriefRequired(`${o.host} is a production org and your organization's policy does not allow Claude to change anything there. ${what} was not done.`);
+  }
+  const grant = S.prodWrites[o.key];
+  if (grant && grant.until > Date.now()) return;
+  throw new BriefRequired(`${o.host} is a production org (${o.source}), so it is read-only for Claude. ${what} was not done. If the user wants this, they can allow writes in this org for a limited time: extension popup > Control > "Allow writes in production". If the org is not production, they can correct its type there.`);
+}
+// Approval per (session, action verb, page) for 2 minutes after the user approves.
+function assertApproved(lane, what, verb, url) {
+  const key = `${lane.id}|${verb.toLowerCase()}|${url}`;
+  const a = Object.values(S.approvals).find((x) => x.key === key);
+  const now = Date.now();
+  if (a?.status === 'approved' && now - a.decidedAt < APPROVAL_MS) return;
+  if (a?.status === 'denied' && now - a.decidedAt < APPROVAL_MS) throw new ApprovalNeeded(`The user denied ${what} on this page. Do not try again unless they ask.`);
+  if (a?.status === 'pending' && now - a.at < 10 * 60_000) throw new ApprovalNeeded(`Still waiting for the user's approval of ${what}. Ask them to click Approve (or Deny) in the SF Test Bridge popup, then repeat the same call.`);
+  const id = crypto.randomUUID();
+  for (const [k, x] of Object.entries(S.approvals)) if (x.key === key || now - x.at > 30 * 60_000) delete S.approvals[k];
+  S.approvals[id] = { id, key, session: lane.label, what, verb, url, at: now, status: 'pending' };
+  saveApprovals();
+  updateBadge();
+  throw new ApprovalNeeded(`${what} is destructive, so it needs the user's approval: ask them to click Approve in the SF Test Bridge popup (Control tab), then repeat the same call. The approval covers "${verb}" on this page for 2 minutes. Nothing was done.`);
+}
+
+// With a brief, the lane stays in the brief's org.
+function assertBriefOrg(lane, url) {
+  if (!lane.brief || !url || /^about:(blank|srcdoc)/.test(url)) return;
+  if (!SitePolicy.sameOrg(lane.brief.org, url)) {
+    let host = url;
+    try { host = new URL(url).hostname; } catch { /* keep url */ }
+    throw new BriefRequired(`${host} is outside this session's brief (org ${new URL(lane.brief.org).hostname}). Stay in that org, or agree a new brief with the user and call browser_brief again.`);
+  }
+}
+// Clicking these (or running these record actions) changes data, or
+// commits a form or flow step. Edit, New, Clone etc. only open a form: the
+// Save / Next that commits it is caught here.
+const WRITE_CLICK = /^(save|save & new|submit|delete|confirm|approve|reject|recall|convert|merge|change owner|mark .*\b(complete|current)|close case|send|finish|next|done|ok|yes|apply|remove|mass\b|update|follow|unfollow|lock|unlock)\b/i;
+// Keys that only move around.
+const NAV_KEYS = /^((Shift\+)?Tab|Escape|Arrow(Up|Down|Left|Right)|PageUp|PageDown|Home|End)$/i;
+const laneName = (id) => S.lanes[id]?.label || 'another session';
+const ownTabs = (laneId) => Object.keys(S.controlled).map(Number).filter((t) => S.owner[t] === laneId);
+const laneBusy = (laneId) => ownTabs(laneId).some((t) => runs.get(t) && !runs.get(t).cancelled);
+
+// End a lane: stop its running commands, then release its tabs (they stay
+// open, ungrouped, and Claude can no longer act on them) or close them.
+async function endLane(laneId, { closeTabs = S.closeOnEnd, why = '' } = {}) {
+  await ready;
+  const lane = S.lanes[laneId];
+  const tabs = ownTabs(laneId);
+  for (const t of tabs) { const r = runs.get(t); if (r && !r.cancelled) r.cancelled = `the session ended (${why})`; }
+  const closed = [];
+  const released = [];
+  for (const t of tabs) {
+    await releaseTab(t).catch(() => {});
+    if (closeTabs) { await chrome.tabs.remove(t).then(() => closed.push(t), () => {}); }
+    else { await chrome.tabs.ungroup(t).catch(() => {}); released.push(t); }
+  }
+  delete S.lanes[laneId];
+  for (const k of Object.keys(S.groups)) if (k.endsWith(`|${laneId}`)) delete S.groups[k];
+  await saveSession();
+  return { session: lane?.label || laneId, ended: true, why, closedTabs: closed, releasedTabs: released };
+}
+async function endMissingLanes(live) {
+  const alive = new Set(live.map(String));
+  for (const [id, l] of Object.entries(S.lanes)) if (!alive.has(id) && !l.keep) await endLane(id, { why: 'the session is no longer connected' });
+}
+// idle lanes (a session that died without the hub noticing, a forgotten CLI lane)
+chrome.alarms.create('cbb-lanes', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener(async (a) => {
+  if (a.name !== 'cbb-lanes') return;
+  await ready;
+  if (!(S.laneIdleMin > 0)) return;
+  for (const [id, l] of Object.entries(S.lanes)) {
+    const idleMin = (Date.now() - (l.lastSeen || l.since || 0)) / 60_000;
+    if (idleMin >= S.laneIdleMin && !laneBusy(id)) await endLane(id, { why: `idle for ${Math.round(idleMin)} minutes` }).catch(() => {});
+  }
+});
+
+// ---------------------------------------------------------------------------
+// tab ownership
+// ---------------------------------------------------------------------------
+async function controlTab(tabId, how, laneId) {
   S.controlled[tabId] = how;
-  S.lastTabId = tabId;
+  if (laneId) { S.owner[tabId] = laneId; if (S.lanes[laneId]) S.lanes[laneId].lastTabId = tabId; }
   await saveSession();
 }
-async function releaseTab(tabId) {
+function forgetTab(tabId) {
   delete S.controlled[tabId];
-  if (S.lastTabId === tabId) S.lastTabId = null;
+  delete S.owner[tabId];
+  for (const l of Object.values(S.lanes)) if (l.lastTabId === tabId) l.lastTabId = null;
+}
+async function releaseTab(tabId) {
+  forgetTab(tabId);
   await saveSession();
   await detach(tabId);
 }
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   await ready;
   dbg.delete(tabId);
-  if (S.controlled[tabId]) { delete S.controlled[tabId]; if (S.lastTabId === tabId) S.lastTabId = null; saveSession(); }
+  if (S.controlled[tabId]) { forgetTab(tabId); saveSession(); }
 });
 // New tabs / popups opened by a controlled tab (target=_blank, window.open,
-// SSO popups) become controllable too.
+// SSO popups) become controllable too, in the same lane.
 chrome.tabs.onCreated.addListener(async (tab) => {
   await ready;
   if (tab.openerTabId != null && S.controlled[tab.openerTabId]) {
     S.controlled[tab.id] = 'child';
+    const owner = S.owner[tab.openerTabId];
+    if (owner) S.owner[tab.id] = owner;
     saveSession();
-    addToGroup(tab).catch(() => {});
+    addToGroup(tab, owner).catch(() => {});
   }
 });
 chrome.windows.onRemoved.addListener(async (windowId) => {
   await ready;
-  if (S.claudeWindowId === windowId) S.claudeWindowId = null;
-  delete S.groups[windowId];
+  for (const l of Object.values(S.lanes)) if (l.windowId === windowId) l.windowId = null;
+  for (const k of Object.keys(S.groups)) if (k.startsWith(`${windowId}|`)) delete S.groups[k];
   saveSession();
 });
 
-async function addToGroup(tab) {
+// One tab group per lane and window: "Claude · <session label>".
+async function addToGroup(tab, laneId) {
   if (!chrome.tabGroups) return;
   const win = await chrome.windows.get(tab.windowId);
   if (win.type !== 'normal') return;
-  let groupId = S.groups[tab.windowId];
+  const key = `${tab.windowId}|${laneId || ''}`;
+  let groupId = S.groups[key];
   if (groupId != null) {
     try { await chrome.tabGroups.get(groupId); } catch { groupId = null; }
   }
   groupId = await chrome.tabs.group({ tabIds: [tab.id], ...(groupId != null ? { groupId } : { createProperties: { windowId: tab.windowId } }) });
-  S.groups[tab.windowId] = groupId;
-  await chrome.tabGroups.update(groupId, { title: 'Claude', color: 'orange' });
+  S.groups[key] = groupId;
+  const lane = S.lanes[laneId];
+  await chrome.tabGroups.update(groupId, { title: lane ? `Claude · ${lane.label}` : 'Claude', color: lane?.color || 'orange' });
   await saveSession();
 }
 
-async function tabFor(params) {
+// anySite: also return a tab that is on a blocked page (only for leaving it:
+// browser_close, browser_navigate to an allowed URL or back).
+async function tabFor(params, { anySite = false } = {}) {
   await ready;
   if (S.paused) throw new Error('SF Test Bridge is paused by the user (extension popup). Ask the user to resume it.');
+  const lane = laneOf(params);
   let tabId = params.tabId;
   if (tabId == null) {
-    const ids = Object.keys(S.controlled).map(Number);
-    if (S.lastTabId != null && S.controlled[S.lastTabId]) tabId = S.lastTabId;
-    else if (ids.length === 1) tabId = ids[0];
-    else throw new Error(ids.length ? `Several controlled tabs (${ids.join(', ')}); pass tabId.` : 'No controlled tab. Call browser_open first, or ask the user to share a tab from the extension popup.');
+    // the default tab is always one of this session's own tabs
+    const own = ownTabs(lane.id);
+    if (lane.lastTabId != null && own.includes(lane.lastTabId)) tabId = lane.lastTabId;
+    else if (own.length === 1) tabId = own[0];
+    else if (own.length) throw new Error(`Several tabs in this session (${own.join(', ')}); pass tabId.`);
+    else {
+      const free = Object.keys(S.controlled).map(Number).filter((t) => !S.owner[t]);
+      if (free.length === 1) tabId = free[0];
+      else throw new Error(free.length ? `This session has no tab yet. Tabs the user shared: ${free.join(', ')}; pass tabId, or call browser_open.` : 'No controlled tab in this session. Call browser_open first, or ask the user to share a tab from the extension popup.');
+    }
   }
   tabId = Number(tabId);
   if (!S.controlled[tabId]) {
     throw new Error(`Tab ${tabId} is not controlled by Claude. Only tabs opened with browser_open (or shared by the user via the extension popup) can be used.`);
   }
+  const owner = S.owner[tabId];
+  if (owner && owner !== lane.id) {
+    throw new Error(`Tab ${tabId} belongs to another Claude session ("${laneName(owner)}"). Each session works on its own tabs so they do not get in each other's way: open your own with browser_open.`);
+  }
   let tab;
   try { tab = await chrome.tabs.get(tabId); } catch { await releaseTab(tabId); throw new Error(`Tab ${tabId} no longer exists.`); }
-  S.lastTabId = tabId;
+  if (!owner) { S.owner[tabId] = lane.id; addToGroup(tab, lane.id).catch(() => {}); } // claim a tab the user shared
+  lane.lastTabId = tabId;
   saveSession();
+  if (!anySite) {
+    assertSite(tab.url || tab.pendingUrl);
+    assertBriefOrg(lane, tab.url || tab.pendingUrl);
+  }
   return tab;
 }
 
@@ -426,6 +769,14 @@ async function waitIdle(tabId, { quietMs = 500, timeoutMs = 5000 } = {}) {
 // ---------------------------------------------------------------------------
 async function inject(tabId, frameIds) {
   await ready;
+  if (!frameIds) {
+    // never put the content script into a frame on a blocked site
+    const all = (await chrome.webNavigation.getAllFrames({ tabId }).catch(() => null)) || [];
+    if (all.some((f) => !siteCheck(f.url).allowed)) {
+      frameIds = all.filter((f) => siteCheck(f.url).allowed).map((f) => f.frameId);
+      if (!frameIds.length) return;
+    }
+  }
   const target = frameIds ? { tabId, frameIds } : { tabId, allFrames: true };
   // Remove a content script left by a previous extension load, then inject.
   const t = (p) => withTimeoutFn(p, 10_000, () => `inject timed out${dialogNote(tabId)}`);
@@ -442,6 +793,8 @@ const FRAME_TIMEOUT_MS = 20_000;
 async function callFrame(tabId, frameId, method, params = {}) {
   await ready;
   checkRun(tabId);
+  const fr = await chrome.webNavigation.getFrame({ tabId, frameId }).catch(() => null);
+  if (fr && !siteCheck(fr.url).allowed) throw new SiteBlocked(`frame ${frameId}: ${siteRefusal(fr.url, siteCheck(fr.url).reason)}`);
   const run = () => withTimeoutFn(chrome.scripting.executeScript({
     target: { tabId, frameIds: [frameId] },
     func: (m, p, boot) => (globalThis.__cbb && globalThis.__cbbBoot === boot
@@ -464,7 +817,7 @@ async function callFrame(tabId, frameId, method, params = {}) {
 async function frames(tabId) {
   const all = (await chrome.webNavigation.getAllFrames({ tabId })) || [{ frameId: 0, parentFrameId: -1, url: '' }];
   return all
-    .filter((f) => f.frameId === 0 || (!f.errorOccurred && /^(https?|file|about):/.test(f.url) && f.url !== 'about:blank'))
+    .filter((f) => f.frameId === 0 || (!f.errorOccurred && /^(https?|file|about):/.test(f.url) && f.url !== 'about:blank' && siteCheck(f.url).allowed))
     .sort((a, b) => (a.frameId === 0 ? -1 : b.frameId === 0 ? 1 : a.frameId - b.frameId));
 }
 const prefixFor = (frameId) => (frameId ? `f${frameId}` : '');
@@ -1229,18 +1582,36 @@ async function fillFieldKind(tabId, spec, loc) {
 // commands
 // ---------------------------------------------------------------------------
 const commands = {
-  async status() {
+  async status(p = {}) {
     await ready;
-    const ids = Object.keys(S.controlled).map(Number);
+    const lane = laneOf(p);
     return {
       browser: browserName(), version: chrome.runtime.getManifest().version, paused: S.paused,
-      openMode: S.openMode, controlledTabs: ids, lastTabId: S.lastTabId,
+      openMode: S.openMode, session: lane.label, controlledTabs: ownTabs(lane.id), lastTabId: lane.lastTabId,
+      ...(lane.agent ? { brief: lane.brief || 'none yet (needed before writes: browser_brief)' } : {}),
+      sessions: Object.values(S.lanes).map((l) => ({
+        session: l.label, you: l.id === lane.id, tabs: ownTabs(l.id).length, busy: laneBusy(l.id),
+        idleMin: Math.round((Date.now() - (l.lastSeen || l.since)) / 60_000),
+      })),
+      laneEnd: { closeTabs: S.closeOnEnd, idleMinutes: S.laneIdleMin },
+      orgSetupAllowed: Object.values(S.orgConsent || {}).map((c) => c.host),
+      productionWritesAllowed: Object.values(S.prodWrites || {}).filter((g) => g.until > Date.now()).map((g) => `${g.host} until ${new Date(g.until).toISOString()}`),
+      waitingForApproval: Object.values(S.approvals || {}).filter((a) => a.status === 'pending' && a.key.startsWith(`${lane.id}|`)).map((a) => a.what),
+      ...(Object.keys(S.managed || {}).length ? { policy: S.managed } : {}),
+      sites: { allow: S.allowList, block: S.blockList, rule: 'the block list wins; an empty allow list allows every site that is not blocked', defaultsVersion: S.sitesDefaultsVersion || 1, currentDefaults: SitePolicy.DEFAULTS_VERSION },
     };
   },
 
   // Re-read the unpacked extension from disk (picks up code changes). The
   // worker restarts and reconnects to the hub within a few seconds.
-  async reload() {
+  async reload(p = {}) {
+    await ready;
+    // A reload stops every command in flight, including other sessions' ones.
+    const me = laneOf(p).id;
+    const others = Object.keys(S.lanes).filter((id) => id !== me && laneBusy(id));
+    if (others.length && !p.force) {
+      throw new Error(`Not reloaded: another Claude session is running a command right now (${others.map(laneName).join(', ')}) and a reload would break it. Try again in a moment, or pass force: true.`);
+    }
     setTimeout(() => chrome.runtime.reload(), 200);
     // A dialog open during a reload can no longer be answered through the
     // debugger afterwards (the new worker attaches after it opened).
@@ -1286,36 +1657,89 @@ const commands = {
     };
   },
 
-  async tabs({ all = false }) {
+  // A session sees its own tabs and tabs the user shared (not claimed yet);
+  // all=true lists every tab, with the session that owns it. For the
+  // popup (__popup) every controlled tab is listed.
+  async tabs(p = {}) {
     await ready;
+    const lane = p.__popup ? null : laneOf(p);
     const tabs = await chrome.tabs.query({});
     return tabs
-      .filter((t) => all || S.controlled[t.id])
-      .map((t) => ({
-        tabId: t.id, windowId: t.windowId, title: t.title, url: t.url, active: t.active,
-        controlled: S.controlled[t.id] || false, status: t.status,
-      }));
+      .filter((t) => p.all || (S.controlled[t.id] && (!lane || !S.owner[t.id] || S.owner[t.id] === lane.id)))
+      .map((t) => {
+        const owner = S.owner[t.id];
+        return {
+          tabId: t.id, windowId: t.windowId, title: t.title, url: t.url, active: t.active,
+          controlled: S.controlled[t.id] || false, status: t.status,
+          ...(S.controlled[t.id] ? { session: owner ? laneName(owner) : null, ...(lane ? { yours: !owner || owner === lane.id } : {}) } : {}),
+        };
+      });
   },
 
-  async open({ url = 'about:blank', where }) {
+  // Read the org's setup through the UI API: { org?, paths: [...] }. Read-only;
+  // needs the user's consent for that org (popup). No brief needed.
+  async orgRead(p) {
+    await ready;
+    const org = await orgFor(p);
+    const paths = (Array.isArray(p.paths) ? p.paths : [p.path]).filter(Boolean).slice(0, 10);
+    if (!paths.length) throw new Error('paths is required');
+    const results = {};
+    for (const path of paths) results[path] = await uiApiGet(org.host, path);
+    return { host: org.host, orgType: org.type, orgKey: orgKeyOf(org), results };
+  },
+
+  // Record the session's brief (agreed with the user). Required before any
+  // write by an AI agent session; keeps the lane in the brief's org.
+  async setBrief(p) {
+    await ready;
+    const lane = laneOf(p);
+    const b = p.brief || {};
+    const info = SitePolicy.orgInfo(b.org || '');
+    if (!info) throw new Error(`brief.org must be the Salesforce org's URL or host, e.g. https://acme--uat.sandbox.lightning.force.com (got "${b.org || ''}")`);
+    for (const k of ['target', 'expected']) if (!String(b[k] || '').trim()) throw new Error(`brief.${k} is required: ${k === 'target' ? 'what to test' : 'what counts as working (or "derive from the change / org setup", if the user agreed)'}`);
+    if (!['read-only', 'write'].includes(b.data)) throw new Error('brief.data must be "read-only" or "write" (may you create or change test data?)');
+    if (b.data === 'write' && info.type === 'production' && !b.allowProduction) {
+      throw new Error(`${info.host} looks like a production org (its address has no sandbox, developer or scratch part). Writes there need the user's explicit permission: ask them, then pass allowProduction: true.`);
+    }
+    lane.brief = {
+      org: `https://${info.host}`, orgType: info.type, target: String(b.target).slice(0, 500), expected: String(b.expected).slice(0, 1000),
+      data: b.data, rules: b.rules ? String(b.rules).slice(0, 1000) : undefined, cleanup: b.cleanup !== false,
+      ...(b.allowProduction ? { allowProduction: true } : {}), setAt: new Date().toISOString(),
+    };
+    await saveSession();
+    return { brief: lane.brief, note: lane.brief.data === 'write' ? 'Writes allowed in this org for this session.' : 'Read-only: writes stay refused until a new brief allows them.' };
+  },
+
+  // The session's work is done: release (or close) its tabs and end its lane.
+  async endSession(p = {}) {
+    const lane = laneOf(p);
+    return endLane(lane.id, { closeTabs: p.closeTabs ?? S.closeOnEnd, why: 'ended by the session' });
+  },
+
+  async open(p) {
+    let { url = 'about:blank', where } = p;
     await ready;
     if (S.paused) throw new Error('SF Test Bridge is paused by the user.');
+    assertSite(url);
+    const lane = laneOf(p);
+    assertBriefOrg(lane, url);
     where = where || S.openMode;
     let tab;
     if (where === 'window') {
+      // each session gets its own window
       let winOk = false;
-      if (S.claudeWindowId != null) winOk = !!(await chrome.windows.get(S.claudeWindowId).catch(() => null));
-      if (winOk) tab = await chrome.tabs.create({ windowId: S.claudeWindowId, url: 'about:blank', active: true });
+      if (lane.windowId != null) winOk = !!(await chrome.windows.get(lane.windowId).catch(() => null));
+      if (winOk) tab = await chrome.tabs.create({ windowId: lane.windowId, url: 'about:blank', active: true });
       else {
         const w = await chrome.windows.create({ url: 'about:blank', focused: true, type: 'normal' });
-        S.claudeWindowId = w.id;
+        lane.windowId = w.id;
         tab = w.tabs[0];
       }
     } else {
       tab = await chrome.tabs.create({ url: 'about:blank', active: true });
     }
-    await controlTab(tab.id, 'claude');
-    await addToGroup(tab).catch(() => {});
+    await controlTab(tab.id, 'claude', lane.id);
+    await addToGroup(tab, lane.id).catch(() => {});
     const before = await marks(tab.id);
     // Attach before navigating so console/network are captured from the start.
     const hasCdp = await canCdp(tab.id);
@@ -1327,6 +1751,8 @@ const commands = {
         await chrome.tabs.update(tab.id, { url });
       }
       await waitForLoad(tab.id);
+      const now = (await chrome.tabs.get(tab.id)).url;
+      if (!siteCheck(now).allowed) throw new SiteBlocked(`opened tab ${tab.id}, but it was redirected: ${siteRefusal(now, siteCheck(now).reason)}`);
       await waitIdle(tab.id, { timeoutMs: 8000 });
     }
     return { ...(await pageReport(tab.id, before)), cdp: hasCdp ? 'attached' : `unavailable: ${dbgRec(tab.id).cdpUnavailable}` };
@@ -1335,7 +1761,7 @@ const commands = {
   // Closing the last tab of a window closes the window too, which has cost
   // the hub connection before. Keep the window: open a blank tab first.
   async close(p) {
-    const tab = await tabFor(p);
+    const tab = await tabFor(p, { anySite: true });
     const siblings = await chrome.tabs.query({ windowId: tab.windowId });
     let kept;
     if (siblings.length <= 1) {
@@ -1353,9 +1779,12 @@ const commands = {
   //   accept           - leave the page, discarding the unsaved changes
   //   dismiss          - stay on the page and return normally with a note
   async navigate(p) {
-    const tab = await tabFor(p);
-    const before = await marks(tab.id);
     const action = p.action || (p.url ? 'goto' : null);
+    // Leaving a blocked page is allowed (goto an allowed URL, or back);
+    // reload / forward on it is not.
+    const tab = await tabFor(p, { anySite: action === 'goto' || action === 'back' });
+    if (action === 'goto') { assertSite(p.url); assertBriefOrg(laneOf(p), p.url); }
+    const before = siteCheck(tab.url).allowed ? await marks(tab.id) : null;
     const mode = p.onBeforeUnload || 'report';
     if (!/^(report|accept|dismiss)$/.test(mode)) throw new Error('onBeforeUnload must be report, accept or dismiss');
     const fromUrl = tab.url;
@@ -1458,6 +1887,8 @@ const commands = {
         .catch(async () => { await pressKey(tab.id, 'Escape').catch(() => {}); throw e; });
       via = 'overflow "More" menu';
     }
+    const name = String(loc.el.name || '').trim();
+    if (COMMIT_BUTTON.test(name) || WRITE_CLICK.test(name)) requireWrite(p, `clicking "${name}"`, DESTRUCTIVE.exec(name)?.[1] || null);
     const before = await marks(tab.id);
     const modalBefore = COMMIT_BUTTON.test(loc.el.name || '') ? await currentModal(tab.id) : null;
     const { how, note } = await clickLoc(tab.id, loc, p);
@@ -1726,6 +2157,9 @@ const commands = {
     const tab = await tabFor(p);
     // Text targets only match editable elements (never a link or button).
     const loc = await locate(tab.id, p.text && !p.role ? { ...p, role: ['textbox', 'searchbox', 'combobox', 'spinbutton'] } : p);
+    // typing into a search box only looks something up
+    const isSearch = loc.el.role === 'searchbox' || loc.el.type === 'search' || /\bsearch\b/i.test(loc.el.name || '');
+    if (!isSearch) requireWrite(p, `typing into "${loc.el.name || loc.el.role}"`);
     const before = await marks(tab.id);
     const how = await typeLoc(tab.id, loc, String(p.value ?? ''), { clear: p.clear !== false, slowly: p.slowly, method: p.method });
     if (p.submit) {
@@ -1952,14 +2386,32 @@ const commands = {
     if (await anyFrame(tab.id, 'hasSelector', { selector: 'input[type=password]' })) {
       throw new Error('Refused: browser_evaluate does not run on pages with a password field (login pages).');
     }
+    const ms = Math.min(p.timeoutMs || 30_000, 120_000);
+    // replMode (top-level await, re-declaring const/let) waits only for the
+    // REPL completion, like the DevTools console: an expression that returns
+    // a promise, e.g. (async () => ...)(), comes back as the promise object.
+    // So evaluate without returnByValue and wait for a returned promise here.
     const r = await cdp(tab.id, 'Runtime.evaluate', {
-      expression: p.expression, returnByValue: true, awaitPromise: true, userGesture: true, replMode: true,
-    }, Math.min(p.timeoutMs || 30_000, 120_000));
-    if (r.exceptionDetails) {
-      throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+      expression: p.expression, returnByValue: false, awaitPromise: true, userGesture: true, replMode: true, objectGroup: 'cbb-eval',
+    }, ms);
+    try {
+      if (r.exceptionDetails) {
+        throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+      }
+      let v = r.result;
+      if (v.subtype === 'promise' && v.objectId) {
+        const a = await cdp(tab.id, 'Runtime.awaitPromise', { promiseObjectId: v.objectId, returnByValue: true }, ms);
+        if (a.exceptionDetails) throw new Error(a.exceptionDetails.exception?.description || a.exceptionDetails.text);
+        v = a.result;
+      } else if (v.objectId) {
+        // serialize objects and arrays (a value object can't be returned by reference)
+        const s = await cdp(tab.id, 'Runtime.callFunctionOn', { objectId: v.objectId, functionDeclaration: 'function () { return this; }', returnByValue: true }, ms);
+        if (!s.exceptionDetails) v = s.result;
+      }
+      return { type: v.type, value: 'value' in v ? v.value : (v.unserializableValue ?? v.description) };
+    } finally {
+      cdp(tab.id, 'Runtime.releaseObjectGroup', { objectGroup: 'cbb-eval' }, 3000).catch(() => {});
     }
-    const v = r.result;
-    return { type: v.type, value: 'value' in v ? v.value : (v.unserializableValue ?? v.description) };
   },
 
   async console(p) {
@@ -1999,9 +2451,15 @@ const commands = {
   },
 
   async dialog(p) {
-    const tab = await tabFor(p);
+    const tab = await tabFor(p, { anySite: true });
     const d = dbgRec(tab.id);
     let was = d.dialog;
+    // On a blocked page only leaving is allowed: answer a "Leave site?"
+    // (beforeunload) dialog either way, any other dialog only by cancelling.
+    if (p.accept !== false && was?.type !== 'beforeunload') requireWrite(p, `accepting a ${was?.type || 'JavaScript'} dialog`);
+    if (!siteCheck(tab.url).allowed && p.accept !== false && was?.type !== 'beforeunload') {
+      throw new SiteBlocked(`${siteRefusal(tab.url, siteCheck(tab.url).reason)} On this page browser_dialog can only cancel (accept: false), or answer a "Leave site?" dialog.`);
+    }
     if (!was) {
       // A dialog that opened before the bridge attached sends no event; try anyway.
       try {
@@ -2048,7 +2506,9 @@ const commands = {
 };
 
 // Commands that never touch a page (or create their own tab).
-const NO_TAB = new Set(['status', 'reload', 'tabs', 'open']);
+const NO_TAB = new Set(['status', 'reload', 'tabs', 'open', 'endSession', 'setBrief', 'orgRead']);
+// Commands allowed on a tab that is on a blocked page (they only leave it).
+const LEAVE_OK = new Set(['close', 'navigate', 'dialog']);
 // Read-only debugging commands: never supersede a running command.
 const PASSIVE = new Set(['console', 'network', 'netMark', 'serverMessages']);
 // Default watchdog budgets, a few seconds under the MCP tool timeouts, used
@@ -2083,10 +2543,24 @@ async function handle(method, params, reqId) {
   const fn = commands[method];
   if (!fn) throw new Error(`unknown command "${method}"`);
   if (NO_TAB.has(method) || PASSIVE.has(method)) return fn(params);
-  const tabId = (await tabFor(params)).id; // also validates ownership / pause
+  // also validates ownership / pause / site lists
+  const tab0 = await tabFor(params, { anySite: LEAVE_OK.has(method) });
+  const tabId = tab0.id;
+  const onSite = siteCheck(tab0.url || tab0.pendingUrl).allowed;
+  params.__tabUrl = tab0.url || tab0.pendingUrl; // for the production / approval checks
+  // commands that always change data or the page (click, type and dialog
+  // decide inside, once they know the target)
+  const WRITE_METHODS = { fill: 'browser_fill', select: 'browser_select', upload: 'browser_upload', evaluate: 'browser_evaluate' };
+  // record actions: by label, like clicks (Edit / New / Clone only open a form)
+  if (method === 'recordAction' && WRITE_CLICK.test(String(params.label || '').trim())) {
+    requireWrite(params, `the "${params.label}" action`, DESTRUCTIVE.exec(String(params.label).trim())?.[1] || null);
+  }
+  if (WRITE_METHODS[method]) requireWrite(params, WRITE_METHODS[method]);
+  if (method === 'path' && (params.action || 'read') !== 'read') requireWrite(params, `browser_path ${params.action}`);
+  if (method === 'key' && !NAV_KEYS.test(String(params.key || ''))) requireWrite(params, `pressing "${params.key}"`);
   // Attach first (bounded) so a dialog that is already open is known before
   // any page call: page calls freeze while one is open.
-  if (method !== 'dialog' && !dbg.get(tabId)?.attached) await withTimeoutFn(attach(tabId), 8000, () => 'attach timed out').catch(() => {});
+  if (onSite && method !== 'dialog' && !dbg.get(tabId)?.attached) await withTimeoutFn(attach(tabId), 8000, () => 'attach timed out').catch(() => {});
   const d = dbg.get(tabId);
   if (d?.stalled && !d.dialog && !DIALOG_OK.has(method)) {
     // The debugger answers but the page does not: confirm with a probe.
@@ -2123,9 +2597,24 @@ async function handle(method, params, reqId) {
     }, 200);
   });
   try {
-    return await Promise.race([fn(params), watchdog]);
+    const result = await Promise.race([fn(params), watchdog]);
+    // The action took the tab onto a blocked page (link, redirect): hand back
+    // nothing that was read from it.
+    if (method !== 'close') {
+      const now = await chrome.tabs.get(tabId).catch(() => null);
+      const c = now ? siteCheck(now.url) : { allowed: true };
+      if (!c.allowed && method === 'dialog') {
+        // say whether the dialog was answered, but nothing read from the page
+        const { handled, dialog, accepted, note } = result || {};
+        return { handled, dialog, accepted, note, tabId, url: now.url, siteBlocked: `the tab is still on a page outside the allowed sites (${c.reason}); page content not returned` };
+      }
+      if (!c.allowed) {
+        throw new SiteBlocked(`${method} ran, but tab ${tabId} is now on ${now.url}, which is outside the allowed sites (${c.reason}); its content was not returned. Leave it with browser_navigate (action "back" or an allowed url) or browser_close.`);
+      }
+    }
+    return result;
   } catch (e) {
-    if (e instanceof TabBlocked || e instanceof Cancelled) throw e;
+    if (e instanceof TabBlocked || e instanceof Cancelled || e instanceof SiteBlocked || e instanceof BriefRequired || e instanceof ApprovalNeeded) throw e;
     if (e.watchdog || /did not answer|timed out after/.test(e.message)) {
       run.cancelled = run.cancelled || 'page stopped answering';
       const where = `${method} stopped while ${run.step} (step running for ${sec(Date.now() - run.stepAt)}, ${sec(Date.now() - run.started)} in total)`;
@@ -2136,6 +2625,12 @@ async function handle(method, params, reqId) {
   } finally {
     clearInterval(watch);
     if (runs.get(tabId) === run) runs.delete(tabId);
+    // Ended on a blocked page: stop capturing it (unless a dialog there
+    // still has to be answered to leave).
+    if (!runs.has(tabId) && dbg.get(tabId)?.attached && !dbg.get(tabId)?.dialog) {
+      const now = await chrome.tabs.get(tabId).catch(() => null);
+      if (now && !siteCheck(now.url).allowed) await detach(tabId).catch(() => {});
+    }
   }
 }
 // The hub gave up on a request (its own timeout): stop that command.
@@ -2152,13 +2647,106 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     switch (msg.cmd) {
       case 'status': {
         const [cur] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-        const tabs = await commands.tabs({});
+        const tabs = await commands.tabs({ __popup: true });
         return {
           connected: conn.connected, port: S.port, paused: S.paused, openMode: S.openMode,
           lastError: conn.lastError, browser: browserName(),
-          currentTab: cur ? { id: cur.id, title: cur.title, url: cur.url, controlled: S.controlled[cur.id] || false } : null,
-          tabs,
+          currentTab: cur ? { id: cur.id, title: cur.title, url: cur.url, controlled: S.controlled[cur.id] || false, site: siteCheck(cur.url) } : null,
+          tabs, allowList: S.allowList, blockList: S.blockList,
+          sessions: Object.values(S.lanes).map((l) => ({
+            id: l.id, label: l.label, color: l.color, tabs: ownTabs(l.id).length, busy: laneBusy(l.id),
+            brief: l.brief ? { data: l.brief.data, target: l.brief.target, org: l.brief.org } : null, agent: !!l.agent,
+            idleMin: Math.round((Date.now() - (l.lastSeen || l.since)) / 60_000),
+          })),
+          closeOnEnd: S.closeOnEnd, laneIdleMin: S.laneIdleMin,
+          sitesDefaultsVersion: S.sitesDefaultsVersion || 1,
+          orgConsent: S.orgConsent,
+          currentOrg: (() => {
+            const o = cur && lightningHost(cur.url || '');
+            if (!o) return null;
+            const t = orgTypeOf(`https://${o.host}`);
+            const g = S.prodWrites[orgKeyOf(o)];
+            return { host: o.host, type: t.type, typeSource: t.source, detectedType: o.type, allowed: !!S.orgConsent[orgKeyOf(o)], prodWritesUntil: g && g.until > Date.now() ? g.until : null };
+          })(),
+          approvals: Object.values(S.approvals || {}).filter((a) => a.status === 'pending' && Date.now() - a.at < 10 * 60_000),
+          managed: { siteLists: Array.isArray(S.managed.allowList) || Array.isArray(S.managed.blockList), productionWrites: S.managed.productionWrites || null, orgSetupReading: S.managed.orgSetupReading !== false },
         };
+      }
+      case 'endLane': return endLane(String(msg.id), { why: 'ended by the user' });
+      case 'orgConsent': {
+        // allow / revoke reading an org's setup (only the popup, i.e. the user)
+        const org = lightningHost(msg.url || '');
+        if (!org) return { ok: false, error: 'not a Salesforce org' };
+        if (msg.allow) S.orgConsent[orgKeyOf(org)] = { host: org.host, at: new Date().toISOString() };
+        else {
+          delete S.orgConsent[orgKeyOf(org)];
+          send({ type: 'clear-org-cache', orgHost: org.host }); // the hub deletes what it cached for that org
+        }
+        await chrome.storage.local.set({ orgConsent: S.orgConsent });
+        return { ok: true, consent: S.orgConsent };
+      }
+      case 'approval': {
+        const a = S.approvals[msg.id];
+        if (!a) return { ok: false, error: 'no such request (it may have expired)' };
+        a.status = msg.approve ? 'approved' : 'denied';
+        a.decidedAt = Date.now();
+        saveApprovals();
+        updateBadge();
+        return { ok: true };
+      }
+      case 'setOrgType': {
+        const info = SitePolicy.orgInfo(msg.url || '');
+        if (!info) return { ok: false, error: 'not a Salesforce org' };
+        if (msg.type) S.orgTypeOverride[orgKeyOf(info)] = String(msg.type);
+        else delete S.orgTypeOverride[orgKeyOf(info)];
+        await chrome.storage.local.set({ orgTypeOverride: S.orgTypeOverride });
+        return { ok: true };
+      }
+      case 'prodWrites': {
+        const info = SitePolicy.orgInfo(msg.url || '');
+        if (!info) return { ok: false, error: 'not a Salesforce org' };
+        if (S.managed.productionWrites === 'never') return { ok: false, error: 'not allowed by your organization\'s policy' };
+        const min = Math.min(60, Math.max(0, Number(msg.minutes) || 0));
+        if (min) S.prodWrites[orgKeyOf(info)] = { host: info.host, until: Date.now() + min * 60_000 };
+        else delete S.prodWrites[orgKeyOf(info)];
+        await chrome.storage.local.set({ prodWrites: S.prodWrites });
+        return { ok: true };
+      }
+      case 'debuglog': {
+        // the popup's Debug logs card: status / start / stop / remove (setup only in the terminal)
+        if (!['status', 'start', 'stop', 'remove', 'orgs', 'plan', 'setup', 'search', 'capture'].includes(msg.action)) return { ok: false, error: 'not allowed' };
+        const { cmd: _c, ...params } = msg;
+        return { ok: true, debuglog: await hubCall('debuglog', params, ['setup', 'search', 'capture'].includes(msg.action) ? 240_000 : 120_000) };
+      }
+      case 'clearOrgCache':
+        send({ type: 'clear-org-cache', orgHost: msg.host || null });
+        return { ok: true };
+      case 'setLaneOptions':
+        S.closeOnEnd = !!msg.closeOnEnd;
+        S.laneIdleMin = Math.max(0, Math.min(1440, Number(msg.laneIdleMin) || 0));
+        await chrome.storage.local.set({ closeOnEnd: S.closeOnEnd, laneIdleMin: S.laneIdleMin });
+        return { ok: true };
+      case 'setSites': {
+        // Only the popup (the user) changes the lists; the hub has no command for it.
+        if (Array.isArray(S.managed.allowList) || Array.isArray(S.managed.blockList)) return { ok: false, errors: ['The site lists are set by your organization\'s policy.'] };
+        const allow = SitePolicy.compile(msg.allow);
+        const block = SitePolicy.compile(msg.block);
+        const errors = [...allow.errors.map((e) => `Allow: ${e}`), ...block.errors.map((e) => `Block: ${e}`)];
+        if (errors.length) return { ok: false, errors };
+        // keep the user's comment lines, drop empty ones
+        const lines = (v) => (Array.isArray(v) ? v : String(v || '').split(/\r?\n/)).map((x) => String(x).trim()).filter(Boolean);
+        S.allowList = lines(msg.allow);
+        S.blockList = lines(msg.block);
+        // saved right after "Reset to defaults": the lists are now current
+        if (msg.defaultsVersion) S.sitesDefaultsVersion = Number(msg.defaultsVersion);
+        await chrome.storage.local.set({ sitesDefaultsVersion: S.sitesDefaultsVersion });
+        await chrome.storage.local.set({ allowList: S.allowList, blockList: S.blockList });
+        compileSites();
+        for (const id of Object.keys(S.controlled).map(Number)) {
+          const t = await chrome.tabs.get(id).catch(() => null);
+          if (t && !siteCheck(t.url).allowed && dbg.get(id)?.attached) await detach(id).catch(() => {});
+        }
+        return { ok: true, allowList: S.allowList, blockList: S.blockList };
       }
       case 'share': await controlTab(msg.tabId, 'user'); return { ok: true };
       case 'unshare': await releaseTab(msg.tabId); return { ok: true };
@@ -2185,6 +2773,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         return { ok: true };
       default: return { error: 'unknown' };
     }
-  })().then(reply, (e) => reply({ error: e.message }));
+  })().then((r) => r, (e) => ({ error: e.message })).then((r) => {
+    // every user decision in the popup is recorded in the hub's traffic log
+    if (msg.cmd !== 'status' && !(msg.cmd === 'debuglog' && (['status', 'orgs', 'plan'].includes(msg.action) || (msg.action === 'capture' && ['view', 'check', 'log', 'search', 'explain'].includes(msg.step))))) send({ type: 'popup-action', cmd: msg.cmd, args: { ...msg, cmd: undefined }, ok: !(r && (r.error || r.ok === false)), error: r?.error || r?.errors?.join('; ') });
+    reply(r);
+  });
   return true;
 });

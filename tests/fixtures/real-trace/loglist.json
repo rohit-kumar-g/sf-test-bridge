@@ -1,0 +1,343 @@
+[
+ {
+  "Id": "07LjV000003OUjBUAW",
+  "StartTime": "2026-11-14T23:09:19.000+0000",
+  "Operation": "common.api.soap.DirectSoap",
+  "Status": "Success",
+  "LogLength": 7028,
+  "DurationMilliseconds": 133,
+  "Request": "Api",
+  "what": "S1 pre-save check: before-save flow, field not found (namespace), no error line"
+ },
+ {
+  "Id": "07LjV000003OUrFUAW",
+  "StartTime": "2026-11-14T23:12:13.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 635,
+  "DurationMilliseconds": 331541586,
+  "Request": "Application",
+  "what": "noise: async log with profiling only"
+ },
+ {
+  "Id": "07LjV000003OUsrUAG",
+  "StartTime": "2026-11-14T23:12:26.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 63415,
+  "DurationMilliseconds": 1707,
+  "Request": "Application",
+  "what": "S1b UI save Rating Cold->Hot: before-save flow, triggers, Contact cascade, after-save flow, invocable"
+ },
+ {
+  "Id": "07LjV000003OUuTUAW",
+  "StartTime": "2026-11-14T23:12:27.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 34815,
+  "DurationMilliseconds": 331555743,
+  "Request": "Application",
+  "what": "S1b async flow path"
+ },
+ {
+  "Id": "07LjV000003OV2XUAW",
+  "StartTime": "2026-11-14T23:13:02.000+0000",
+  "Operation": "common.api.soap.DirectSoap",
+  "Status": "Success",
+  "LogLength": 7072,
+  "DurationMilliseconds": 87,
+  "Request": "Api",
+  "what": "S2 pre-save check"
+ },
+ {
+  "Id": "07LjV000003OV2YUAW",
+  "StartTime": "2026-11-14T23:13:02.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 20646,
+  "DurationMilliseconds": 359,
+  "Request": "Application",
+  "what": "S2 UI save AnnualRevenue: trigger score, queueable queued"
+ },
+ {
+  "Id": "07LjV000003OV49UAG",
+  "StartTime": "2026-11-14T23:13:02.000+0000",
+  "Operation": "QueueableHandler",
+  "Status": "Success",
+  "LogLength": 32719,
+  "DurationMilliseconds": 216710623,
+  "Request": "Application",
+  "what": "S2 Queueable job"
+ },
+ {
+  "Id": "07LjV000003OVAbUAO",
+  "StartTime": "2026-11-14T23:13:58.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 77324,
+  "DurationMilliseconds": 558,
+  "Request": "Application",
+  "what": "S4 LWC quick action -> Apex setRating"
+ },
+ {
+  "Id": "07LjV000003OVCDUA4",
+  "StartTime": "2026-11-14T23:13:58.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 36101,
+  "DurationMilliseconds": 216332136,
+  "Request": "Application",
+  "what": "S4 async flow path"
+ },
+ {
+  "Id": "07LjV000003OVDqUAO",
+  "StartTime": "2026-11-14T23:14:25.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 9550,
+  "DurationMilliseconds": 327,
+  "Request": "Application",
+  "what": "S5 addError (name with BLOCK)"
+ },
+ {
+  "Id": "07LjV000003OVH4UAO",
+  "StartTime": "2026-11-14T23:15:08.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 25316,
+  "DurationMilliseconds": 779,
+  "Request": "Application",
+  "what": "S6 after-save flow fault (REQUIRED_FIELD_MISSING)"
+ },
+ {
+  "Id": "07LjV000003OVKHUA4",
+  "StartTime": "2026-11-14T23:16:54.000+0000",
+  "Operation": "Api",
+  "Status": "Success",
+  "LogLength": 12451,
+  "DurationMilliseconds": 448,
+  "Request": "Api",
+  "what": "S8 anonymous Apex from the CLI (lower detail)"
+ },
+ {
+  "Id": "07LjV000003OwynUAC",
+  "Operation": "/aura",
+  "StartTime": "2026-11-15T06:29:03.000+0000",
+  "Status": "Success",
+  "DurationMilliseconds": 300,
+  "what": "B1 UI inline edit Rating Cold->Cold: saved, automation ran, nothing changed"
+ },
+ {
+  "Id": "07LjV000003OxA5UAK",
+  "Operation": "common.api.soap.DirectSoap",
+  "StartTime": "2026-11-15T06:30:10.000+0000",
+  "Status": "Success",
+  "DurationMilliseconds": 300,
+  "what": "B2 pre-save check: the only log with the before-save flow (Set_Tier_Gold)"
+ },
+ {
+  "Id": "07LjV000003OxA6UAK",
+  "Operation": "/aura",
+  "StartTime": "2026-11-15T06:30:10.000+0000",
+  "Status": "Success",
+  "DurationMilliseconds": 300,
+  "what": "B2 UI inline edit Rating Cold->Hot: save log without the before-save flow"
+ },
+ {
+  "Id": "07LjV000003OxDJUA0",
+  "Operation": "N/A",
+  "StartTime": "2026-11-15T06:30:11.000+0000",
+  "Status": "Success",
+  "DurationMilliseconds": 300,
+  "what": "B2 async flow path"
+ },
+ {
+  "Id": "07LjV000003Oza5UAC",
+  "StartTime": "2026-11-15T06:55:38.000+0000",
+  "Operation": "/services/data/v68.0/sobjects/Account/001jV00000L8HHJQA3",
+  "Status": "Success",
+  "LogLength": 7332,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "C1 REST update Rating: pre-save check log (before-save flow only)"
+ },
+ {
+  "Id": "07LjV000003Oza6UAC",
+  "StartTime": "2026-11-15T06:55:39.000+0000",
+  "Operation": "/services/data/v68.0/sobjects/Account/001jV00000L8HHJQA3",
+  "Status": "Success",
+  "LogLength": 61806,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "C1 REST update Rating Warm->Cold: the save"
+ },
+ {
+  "Id": "07LjV000003OyKgUAK",
+  "StartTime": "2026-11-15T06:55:40.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 36108,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "C1 async flow path"
+ },
+ {
+  "Id": "07LjV000003OzbhUAC",
+  "StartTime": "2026-11-15T06:55:46.000+0000",
+  "Operation": "/services/data/v62.0/actions/custom/flow/acmens__Bridge_Trace_Autolaunched",
+  "Status": "Success",
+  "LogLength": 25885,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "C2 autolaunched flow called through REST (update by filter)"
+ },
+ {
+  "Id": "07LjV000003OzdJUAS",
+  "StartTime": "2026-11-15T06:55:58.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 635,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "C2 noise: async log without the record"
+ },
+ {
+  "Id": "07LjV000003P0UXUA0",
+  "StartTime": "2026-11-15T07:03:00.000+0000",
+  "Operation": "acmens__Bridge_Trace_Scheduled-5",
+  "Status": "Success",
+  "LogLength": 1285,
+  "DurationMilliseconds": 300,
+  "user": "Automation User",
+  "what": "C4 scheduled flow job (picks the records), as another user"
+ },
+ {
+  "Id": "07LjV000003P0W9UAK",
+  "StartTime": "2026-11-15T07:03:00.000+0000",
+  "Operation": "ApexContextImpl",
+  "Status": "Success",
+  "LogLength": 80856,
+  "DurationMilliseconds": 300,
+  "user": "Automation User",
+  "what": "C4 scheduled flow ran as another user: the run (ApexContextImpl)"
+ },
+ {
+  "Id": "07LjV000003P0XlUAK",
+  "StartTime": "2026-11-15T07:03:01.000+0000",
+  "Operation": "N/A",
+  "Status": "Success",
+  "LogLength": 36071,
+  "DurationMilliseconds": 300,
+  "user": "Automation User",
+  "what": "C4 async flow path, as the other user"
+ },
+ {
+  "Id": "07LjV000003P1IXUA0",
+  "StartTime": "2026-11-15T07:13:09.000+0000",
+  "Operation": "/acmens/bridgetrace",
+  "Status": "Success",
+  "LogLength": 104353,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M1",
+  "what": "M1 Apex REST endpoint (operation = its URL mapping)"
+ },
+ {
+  "Id": "07LjV000003P1QbUAK",
+  "StartTime": "2026-11-15T07:14:26.000+0000",
+  "Operation": "Batch Apex",
+  "Status": "Success",
+  "LogLength": 5003,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M2",
+  "what": "M2 Batch Apex start"
+ },
+ {
+  "Id": "07LjV000003P1TpUAK",
+  "StartTime": "2026-11-15T07:14:27.000+0000",
+  "Operation": "Batch Apex",
+  "Status": "acmens:Too many future calls: 1",
+  "LogLength": 6139,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M2",
+  "what": "M2 Batch Apex finish: LimitException (no @future from a batch)"
+ },
+ {
+  "Id": "07LjV000003P1SEUA0",
+  "StartTime": "2026-11-15T07:14:27.000+0000",
+  "Operation": "SerialBatchApexRangeChunkHandler",
+  "Status": "Success",
+  "LogLength": 29986,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M2",
+  "what": "M2 Batch Apex execute chunk (the update)"
+ },
+ {
+  "Id": "07LjV000003P1f7UAC",
+  "StartTime": "2026-11-15T07:21:52.000+0000",
+  "Operation": "Platform Event Process",
+  "Status": "Success",
+  "LogLength": 31784,
+  "DurationMilliseconds": 300,
+  "user": "Automated Process",
+  "matrix": "M4",
+  "what": "M4 platform-event flow, logged as Automated Process"
+ },
+ {
+  "Id": "07LjV000003P1wrUAC",
+  "StartTime": "2026-11-15T07:25:25.000+0000",
+  "Operation": "/services/data/v62.0/composite/sobjects",
+  "Status": "Success",
+  "LogLength": 7129,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M7",
+  "what": "M7 composite update: pre-save check"
+ },
+ {
+  "Id": "07LjV000003P1wsUAC",
+  "StartTime": "2026-11-15T07:25:26.000+0000",
+  "Operation": "/services/data/v62.0/composite/sobjects",
+  "Status": "Success",
+  "LogLength": 21734,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M7",
+  "what": "M7 composite update of an Account and 2 Contacts"
+ },
+ {
+  "Id": "07LjV000003P205UAC",
+  "StartTime": "2026-11-15T07:26:10.000+0000",
+  "Operation": "FutureHandler",
+  "Status": "Success",
+  "LogLength": 32789,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M8",
+  "what": "M8 @future method"
+ },
+ {
+  "Id": "07LjV000003P2jFUAS",
+  "StartTime": "2026-11-15T07:31:01.000+0000",
+  "Operation": "Bridge Trace Matrix 1794727758164",
+  "Status": "Success",
+  "LogLength": 5292,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "matrix": "M3",
+  "what": "M3 scheduled Apex job (operation = the job name)"
+ },
+ {
+  "Id": "07LjV000003PPmIUAW",
+  "StartTime": "2026-11-15T12:09:20.000+0000",
+  "Operation": "/aura",
+  "Status": "Success",
+  "LogLength": 17567,
+  "DurationMilliseconds": 300,
+  "user": "Dev User",
+  "what": "P1 UI edit from the popup capture: Parent Account set from empty"
+ }
+]

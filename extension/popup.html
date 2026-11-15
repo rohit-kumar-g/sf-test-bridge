@@ -3,46 +3,270 @@
 <head>
 <meta charset="utf-8">
 <style>
-  :root { --accent: #d97757; --fg: #1f1f1f; --muted: #6b6b6b; --bg: #fff; --line: #e6e6e6; --ok: #2e7d32; --bad: #c62828; }
-  @media (prefers-color-scheme: dark) { :root { --fg: #eee; --muted: #a0a0a0; --bg: #1e1e1e; --line: #333; } }
-  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; width: 320px; color: var(--fg); background: var(--bg); }
-  header { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
-  header b { flex: 1; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); }
-  .dot.on { background: var(--ok); }
-  section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  .muted { color: var(--muted); font-size: 12px; }
+  :root {
+    --accent: #d97757; --accent-fg: #fff; --fg: #1f1f1f; --muted: #6b6b6b; --bg: #fff; --panel: #f6f6f4;
+    --line: #e3e3e0; --ok: #2e7d32; --ok-bg: #e8f3e9; --bad: #c62828; --bad-bg: #fbeaea; --warn: #a15c00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #ececec; --muted: #a0a0a0; --bg: #1e1e1e; --panel: #262626; --line: #363636;
+      --ok: #6cc070; --ok-bg: #1f2d20; --bad: #ef6b6b; --bad-bg: #3a2222; --warn: #e0a24a; }
+  }
+  * { box-sizing: border-box; }
+  /* "hidden" must win over display rules such as .row { display: flex } */
+  [hidden] { display: none !important; }
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; width: 360px; color: var(--fg); background: var(--bg); }
+  code { font: 11.5px ui-monospace, Consolas, monospace; }
   button { font: inherit; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-  ul { margin: 6px 0 0; padding-left: 16px; max-height: 140px; overflow: auto; }
-  li { margin: 2px 0; word-break: break-all; }
-  input[type=number] { width: 80px; font: inherit; }
-  select { font: inherit; }
-  .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 290px; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, [role=tab]:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+
+  /* header */
+  header { padding: 10px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+  header b { flex: 1; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); flex: none; }
+  .dot.on { background: var(--ok); }
+  .pill { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .pill.paused { color: var(--warn); border-color: var(--warn); }
+
+  /* main tabs */
+  [role=tablist].main { display: flex; border-bottom: 1px solid var(--line); padding: 0 6px; }
+  [role=tablist].main [role=tab] { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 10px 7px; color: var(--muted); background: none; }
+  [role=tablist].main [role=tab][aria-selected=true] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+  .badge { display: inline-block; min-width: 16px; padding: 0 4px; margin-left: 4px; border-radius: 8px; font-size: 10.5px; line-height: 16px; text-align: center; background: var(--panel); color: var(--muted); font-weight: 500; }
+  .dirty-dot { color: var(--accent); margin-left: 3px; }
+
+  [role=tabpanel] { padding: 12px; min-height: 360px; }
+  [role=tabpanel][hidden] { display: none; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .card + .card, .card + .label, .stack > * + * { margin-top: 10px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 4px; }
+  .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 8px; border-radius: 6px; margin-top: 6px; }
+  .status.ok { color: var(--ok); background: var(--ok-bg); }
+  .status.bad { color: var(--bad); background: var(--bad-bg); }
+
+  ul.tabs { list-style: none; margin: 0; padding: 0; max-height: 150px; overflow: auto; }
+  ul.tabs li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--line); }
+  ul.tabs li:first-child { border-top: 0; }
+  ul.tabs .who { font-size: 11px; color: var(--muted); flex: none; }
+  ul.tabs li.lane { align-items: center; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  button.small { padding: 1px 8px; font-size: 12px; }
+  .card.notice { border-color: var(--accent); margin-bottom: 10px; font-size: 12px; }
+
+  /* sites */
+  .seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+  .seg [role=tab] { flex: 1; border: 0; border-radius: 6px; padding: 5px 8px; background: none; color: var(--muted); }
+  .seg [role=tab][aria-selected=true] { background: var(--bg); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .hint { font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  textarea { width: 100%; height: 190px; font: 12px/1.45 ui-monospace, Consolas, monospace; color: var(--fg); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; resize: vertical; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+  textarea[hidden] { display: none; }
+  #siteErr { color: var(--bad); font-size: 12px; white-space: pre-wrap; }
+  #siteErr:empty { display: none; }
+  .tester input { width: 100%; font: 12px ui-monospace, Consolas, monospace; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+  #testOut { min-height: 18px; }
+  details.help summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+  details.help ul { margin: 6px 0 0; padding-left: 16px; font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+
+  /* settings */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  select, input[type=number] { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+  input[type=number] { width: 100px; }
+  .find { margin-top: 8px; }
+  .find input[type=text] { min-width: 0; font: 12px ui-monospace, Consolas, monospace; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+  ul.found li { display: block; font-size: 12px; }
+  ul.found code { display: block; font: 11px ui-monospace, Consolas, monospace; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+  .cap { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .cap input[type=text] { width: 100%; box-sizing: border-box; font: 12px ui-monospace, Consolas, monospace; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); margin-bottom: 6px; }
+  .cap .say { font-size: 12px; margin: 4px 0 6px; }
+  ul.caplogs { list-style: none; margin: 6px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+  ul.caplogs li { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
+  ul.caplogs li.likely { font-weight: 600; }
+  ul.caplogs .what { flex: 1; min-width: 0; }
+  ul.caplogs .why { font-weight: normal; color: var(--muted); }
+  ul.caplogs code.err { color: var(--bad); }
+  ul.caplogs mark { background: #ffe58a; color: inherit; border-radius: 2px; }
+  ul.caplogs .btns { display: flex; flex-direction: column; gap: 4px; }
+  ul.caplogs .ex { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--line); }
+  #dlCapMore summary { cursor: pointer; font-size: 12px; margin-top: 6px; }
+  ul.caplogs code { display: block; font: 11px ui-monospace, Consolas, monospace; font-weight: normal; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
 </style>
 </head>
 <body>
-<header><span id="dot" class="dot"></span><b>SF Test Bridge</b><span id="browser" class="muted"></span></header>
-<section>
-  <div id="conn"></div>
-  <div class="row"><button id="reconnect">Reconnect</button><button id="pause"></button></div>
-</section>
-<section>
-  <div class="muted">Current tab</div>
-  <div id="cur" class="title"></div>
-  <div class="row"><button id="share" class="primary"></button></div>
-</section>
-<section>
-  <div class="muted">Tabs Claude can control</div>
-  <ul id="tabs"></ul>
-</section>
-<section>
-  <div class="row"><span class="muted">Open new tabs in</span>
-    <select id="openMode"><option value="window">a separate Claude window</option><option value="tab">the current window</option></select>
+<header>
+  <span id="dot" class="dot" title="Connection to Claude"></span>
+  <b>SF Test Bridge</b>
+  <span id="pausedPill" class="pill" hidden>Paused</span>
+  <span id="browser" class="muted"></span>
+</header>
+
+<div class="main" role="tablist" aria-label="Sections">
+  <button role="tab" id="tab-control" aria-controls="panel-control" aria-selected="true">Control</button>
+  <button role="tab" id="tab-sites" aria-controls="panel-sites" aria-selected="false" tabindex="-1">Sites<span id="sitesDirtyDot" class="dirty-dot" hidden title="Unsaved changes">●</span></button>
+  <button role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1">Settings</button>
+</div>
+
+<!-- Control -->
+<div id="actionMsg" class="status" hidden style="display:block;margin:8px 12px 0"></div>
+<section role="tabpanel" id="panel-control" aria-labelledby="tab-control">
+  <div id="approvals" class="card notice" hidden>
+    <div class="label" style="color:var(--bad)">Claude is waiting for your approval</div>
+    <ul id="approvalList" class="tabs"></ul>
+    <div class="muted" style="margin-top:4px">An approval covers that action on that page for 2 minutes.</div>
   </div>
-  <div class="row"><span class="muted">Hub port</span><input id="port" type="number" min="1024" max="65535"><button id="savePort">Save</button></div>
+  <div class="card">
+    <div class="row">
+      <div class="grow" id="conn"></div>
+      <button id="pause"></button>
+    </div>
+    <div id="connErr" class="muted"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Current tab</div>
+    <div id="cur" class="title"></div>
+    <div id="curSite" class="status" hidden></div>
+    <div class="row" style="margin-top:8px"><button id="share" class="primary"></button></div>
+    <div id="orgType" class="row muted" style="margin-top:8px" hidden>
+      <span class="grow">Org type: <b id="orgTypeName"></b> <span id="orgTypeSource"></span></span>
+      <select id="orgTypeSel" aria-label="Correct the org type">
+        <option value="">detect from address</option><option value="production">production</option><option value="sandbox">sandbox</option><option value="developer">developer</option><option value="scratch">scratch</option>
+      </select>
+    </div>
+    <div id="prodWrites" class="row muted" style="margin-top:6px" hidden>
+      <span id="prodWritesText" class="grow"></span>
+      <span id="prodWritesBtns" class="row"></span>
+    </div>
+    <div id="orgRead" class="row muted" style="margin-top:8px" hidden>
+      <span id="orgReadText" class="grow"></span><button id="orgReadBtn" class="small"></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Debug logs</div>
+    <div class="row"><span id="dlText" class="grow muted">…</span><span id="dlBtns" class="row"></span></div>
+    <div id="dlCap" class="cap" hidden>
+      <div class="row"><button id="dlCapStart" class="small primary" type="button">Start capture</button><button id="dlCapStop" class="small" type="button" hidden>Stop</button><span id="dlCapState" class="muted grow">Finds the logs of your next change, API call or scheduled job.</span><button id="dlCapEnd" class="small" type="button" hidden>End</button></div>
+      <form id="dlCapFind" class="find" hidden>
+        <div class="row"><input id="dlCapTerms" type="text" class="grow" spellcheck="false" placeholder="Find: record id, value, flow, class…" aria-label="Find in the captured logs (comma-separated)" title="Comma-separated: record ids, values, API names, flow / element / class names. Searches the downloaded logs as you type; Check also fetches new logs."><button id="dlCapCheck" class="small" type="submit" title="Fetch the logs that arrived since">Check</button></div>
+      </form>
+      <div id="dlCapSay" class="say" aria-live="polite"></div>
+      <div class="row"><button id="dlCapAdd" class="small" type="button" hidden></button><span class="grow"></span><button id="dlCapSend" class="small primary" type="button" hidden>Send to Claude</button></div>
+      <ul id="dlCapList" class="caplogs"></ul>
+      <details id="dlCapMore" hidden><summary id="dlCapMoreSum" class="muted"></summary><ul id="dlCapRest" class="caplogs"></ul></details>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Claude sessions <span id="laneCount" class="badge">0</span></div>
+    <ul id="lanes" class="tabs"></ul>
+  </div>
+
+  <div class="card">
+    <div class="label">Tabs Claude can control <span id="tabCount" class="badge">0</span></div>
+    <ul id="tabs" class="tabs"></ul>
+  </div>
 </section>
+
+<!-- Sites -->
+<section role="tabpanel" id="panel-sites" aria-labelledby="tab-sites" hidden>
+  <div id="managedNotice" class="card notice" hidden><b>Managed by your organization.</b> These lists are set by your organization's policy and can't be changed here.</div>
+  <div id="defaultsNotice" class="card notice" hidden>
+    <div><b>New default rules are available.</b> Your lists were saved before them.</div>
+    <div class="row" style="margin-top:6px"><button id="useDefaults" class="small">Show new defaults</button><button id="dismissDefaults" class="small">Keep mine</button></div>
+  </div>
+  <div class="seg" role="tablist" aria-label="Site list">
+    <button role="tab" id="seg-allow" aria-controls="allowList" aria-selected="true">Allow <span id="allowCount" class="badge">0</span></button>
+    <button role="tab" id="seg-block" aria-controls="blockList" aria-selected="false" tabindex="-1">Block <span id="blockCount" class="badge">0</span></button>
+  </div>
+  <div id="segHint" class="hint"></div>
+  <textarea id="allowList" spellcheck="false" aria-label="Allowed sites" placeholder="abc.lightning.force.com&#10;abc.my.salesforce.com/lightning/r/"></textarea>
+  <textarea id="blockList" spellcheck="false" aria-label="Blocked sites" placeholder="*/lightning/setup/&#10;*/_ui/common/apex/debug" hidden></textarea>
+  <div id="siteErr"></div>
+
+  <div class="actions">
+    <button id="saveSites" class="primary">Save</button>
+    <button id="resetSites">Reset to defaults</button>
+    <span id="sitesSaved" class="muted grow"></span>
+  </div>
+
+  <div class="card tester" style="margin-top:12px">
+    <div class="label">Test an address</div>
+    <input id="testUrl" type="text" spellcheck="false" placeholder="https://…">
+    <div id="testOut" class="status" hidden></div>
+  </div>
+
+  <details class="help" style="margin-top:10px">
+    <summary>Pattern help</summary>
+    <ul>
+      <li><code>abc.my.salesforce.com</code>: every page on that host</li>
+      <li><code>abc.my.salesforce.com/setup/</code>: pages whose path starts with that</li>
+      <li><code>*.lightning.force.com</code>: any subdomain</li>
+      <li><code>*/lightning/setup/</code>: that path on any host</li>
+      <li><code>/regex/</code>: tested on the full URL</li>
+      <li>Block wins over Allow. Empty Allow = every site. <code>#</code> starts a comment.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- Settings -->
+<section role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" hidden>
+  <div id="dlSetup" class="card stack" hidden>
+    <div class="label">Set up debug logs</div>
+    <div class="muted">Uses your Salesforce CLI login. Nothing changes until you click <b>Create and test</b>.</div>
+    <div class="field">
+      <label for="dlOrgSel" class="label">Org</label>
+      <select id="dlOrgSel"><option value="">choose an org…</option></select>
+    </div>
+    <div id="dlPlan" class="muted"></div>
+    <div id="dlWinRow" class="field" hidden>
+      <label for="dlWin" class="label">For how long</label>
+      <select id="dlWin"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">60 minutes</option></select>
+    </div>
+    <div class="row"><button id="dlCreate" class="primary" hidden>Create and test</button><button id="dlCancel">Close</button></div>
+    <ul id="dlProgress" class="tabs"></ul>
+  </div>
+  <div class="card stack">
+    <div class="field">
+      <label for="openMode" class="label">Open new tabs in</label>
+      <select id="openMode"><option value="window">a separate Claude window</option><option value="tab">the current window</option></select>
+    </div>
+    <div class="field">
+      <label for="port" class="label">Hub port</label>
+      <div class="row"><input id="port" type="number" min="1024" max="65535"><button id="savePort">Save</button></div>
+      <div class="muted">Must match <code>BROWSER_BRIDGE_PORT</code> of the MCP server (default 17345).</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Orgs whose setup Claude may read</div>
+    <div class="muted">Fields, picklists, layouts and record types, read with your own login. Never records' data. Cached by the MCP server for 1 hour.</div>
+    <ul id="consentList" class="tabs" style="margin-top:6px"></ul>
+  </div>
+  <div class="card stack">
+    <div class="label">When a Claude session ends</div>
+    <div class="muted">A session ends when Claude Code exits, when Claude calls <code>browser_end_session</code>, or after it has been idle.</div>
+    <div class="field">
+      <select id="closeOnEnd" aria-label="What happens to its tabs"><option value="keep">keep its tabs open (Claude lets go of them)</option><option value="close">close its tabs</option></select>
+    </div>
+    <div class="field">
+      <label for="laneIdleMin" class="label">End an idle session after (minutes, 0 = never)</label>
+      <div class="row"><input id="laneIdleMin" type="number" min="0" max="1440"><button id="saveLane">Save</button><span id="laneSaved" class="muted"></span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="label">Connection</div>
+    <div class="row"><div id="conn2" class="grow muted"></div><button id="reconnect">Reconnect</button></div>
+  </div>
+</section>
+
+<script src="sitepolicy.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

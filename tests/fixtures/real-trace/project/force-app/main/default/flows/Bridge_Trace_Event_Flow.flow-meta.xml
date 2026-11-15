@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <description>SF Test Bridge capture fixture: platform-event-triggered flow; sets the Account's note.</description>
+    <interviewLabel>Bridge Trace Event Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Bridge Trace Event Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value><stringValue>LightningFlowBuilder</stringValue></value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value><stringValue>AUTO_LAYOUT_CANVAS</stringValue></value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Set_Note_From_Event</name>
+        <label>Set Note From Event</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value><elementReference>$Record.acmens__Account_Id__c</elementReference></value>
+        </filters>
+        <inputAssignments>
+            <field>acmens__Bridge_Trace_Note__c</field>
+            <value><stringValue>Set by platform event flow</stringValue></value>
+        </inputAssignments>
+        <object>Account</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector><targetReference>Set_Note_From_Event</targetReference></connector>
+        <object>acmens__Bridge_Trace_Event__e</object>
+        <triggerType>PlatformEvent</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

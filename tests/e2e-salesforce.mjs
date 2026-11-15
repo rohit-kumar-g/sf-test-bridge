@@ -564,7 +564,10 @@ await test('console app (Claude Bridge Console): workspace tabs, subtabs by nav 
 }, { needs: ['acctId', 'parentId', 'contact'] });
 
 await test('guards: no typing into password fields, no evaluate on login pages', async () => {
-  const g = await call('open', { url: 'https://the-internet.herokuapp.com/login' });
+  const g = await call('open', { url: 'https://the-internet.herokuapp.com/login' }).catch((e) => {
+    if (/outside the sites/.test(e.message)) throw skip('the-internet.herokuapp.com is not in the extension\'s allowed sites (add it in the popup to run this test)');
+    throw e;
+  });
   const refused = async (method, params) => {
     try { await call(method, { tabId: g.tabId, ...params }); return false; } catch (e) { return /Refused/.test(e.message); }
   };
@@ -575,6 +578,17 @@ await test('guards: no typing into password fields, no evaluate on login pages',
   await call('click', { tabId: g.tabId, selector: '#password' });
   assert(await refused('key', { key: 'a' }), 'key into focused password not refused');
   await call('close', { tabId: g.tabId });
+});
+
+await test('site lists: Setup and Object Manager are refused', async () => {
+  const s = await call('status');
+  if (!/lightning\/setup/.test((s.sites?.block || []).join('\n'))) throw skip('the block list has no Setup entry (see the extension popup)');
+  const refusedOpen = await call('open', { url: `${ORG}/lightning/setup/SetupOneHome/home` }).then(() => false, (e) => /outside the sites/.test(e.message));
+  assert(refusedOpen, 'browser_open to Setup was not refused');
+  const refusedNav = await call('navigate', { tabId: TAB, url: `${ORG}/lightning/setup/ObjectManager/home` }).then(() => false, (e) => /outside the sites/.test(e.message));
+  assert(refusedNav, 'browser_navigate to Object Manager was not refused');
+  const back = await go('/lightning/o/Account/list');
+  assert(/\/lightning\/o\/Account\/list/.test(back.url), `tab did not stay usable: ${back.url}`);
 });
 
 await test('cleanup: delete created records via Delete action + confirm dialog', async () => {

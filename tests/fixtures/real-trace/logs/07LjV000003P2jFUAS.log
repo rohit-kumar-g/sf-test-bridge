@@ -1,0 +1,90 @@
+62.0 APEX_CODE,FINEST;APEX_PROFILING,FINEST;CALLOUT,FINEST;DATA_ACCESS,INFO;DB,FINEST;NBA,NONE;SYSTEM,FINE;VALIDATION,INFO;VISUALFORCE,FINEST;WAVE,NONE;WORKFLOW,FINER
+23:31:01.1 (1727518)|USER_INFO|[EXTERNAL]|005000000000001|dev.user@example.com|(GMT+00:00) Coordinated Universal Time (UTC)|GMT+00:00
+23:31:01.1 (1810299)|EXECUTION_STARTED
+23:31:01.1 (1907250)|CODE_UNIT_STARTED|[EXTERNAL]|01pjV000005DOkn|acmens.Bridge Trace Matrix 1794727758164
+23:31:01.1 (8382410)|HEAP_ALLOCATE|[95]|Bytes:3
+23:31:01.1 (8488291)|HEAP_ALLOCATE|[100]|Bytes:152
+23:31:01.1 (8537172)|HEAP_ALLOCATE|[417]|Bytes:408
+23:31:01.1 (8575642)|HEAP_ALLOCATE|[430]|Bytes:408
+23:31:01.1 (8635323)|HEAP_ALLOCATE|[317]|Bytes:6
+23:31:01.1 (8644043)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:3
+23:31:01.1 (8695174)|SYSTEM_METHOD_ENTRY|[1]|SchedulableContextImpl.SchedulableContextImpl()
+23:31:01.1 (8713114)|STATEMENT_EXECUTE|[1]
+23:31:01.1 (8738474)|SYSTEM_METHOD_EXIT|[1]|SchedulableContextImpl
+23:31:01.1 (8742824)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:31:01.1 (8748494)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:31:01.1 (8784655)|VARIABLE_SCOPE_BEGIN|[4]|this|System.SchedulableContextImpl|true|false
+23:31:01.1 (9114448)|VARIABLE_ASSIGNMENT|[4]|this|{}|0x2be62237
+23:31:01.1 (9131748)|VARIABLE_SCOPE_BEGIN|[4]|triggerId|Id|false|false
+23:31:01.1 (9308710)|VARIABLE_ASSIGNMENT|[4]|triggerId|"08ejV000008MzZsQAK"
+23:31:01.1 (13185332)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:76
+23:31:01.1 (13200372)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:9
+23:31:01.1 (13211773)|METHOD_ENTRY|[2]|01pjV000005DOkn|acmens.BridgeTraceBatch.BridgeTraceBatch()
+23:31:01.1 (13216913)|STATEMENT_EXECUTE|[2]
+23:31:01.1 (13248393)|STATEMENT_EXECUTE|[2]
+23:31:01.1 (13252413)|METHOD_EXIT|[2]|acmens.BridgeTraceBatch
+23:31:01.1 (13265143)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:4
+23:31:01.1 (13269153)|HEAP_ALLOCATE|[EXTERNAL]|Bytes:8
+23:31:01.1 (13277463)|VARIABLE_SCOPE_BEGIN|[15]|this|acmens.BridgeTraceBatch|true|false
+23:31:01.1 (13343114)|VARIABLE_ASSIGNMENT|[15]|this|{}|0x5974fcaf
+23:31:01.1 (13349784)|VARIABLE_SCOPE_BEGIN|[15]|ctx|System.SchedulableContext|true|false
+23:31:01.1 (13429095)|VARIABLE_ASSIGNMENT|[15]|ctx|{"triggerId":"08ejV000008MzZsQAK"}|0x2be62237
+23:31:01.1 (13444235)|STATEMENT_EXECUTE|[15]
+23:31:01.1 (13446415)|STATEMENT_EXECUTE|[16]
+23:31:01.1 (13451615)|HEAP_ALLOCATE|[16]|Bytes:4
+23:31:01.1 (13488486)|CONSTRUCTOR_ENTRY|[16]|01pjV000005DOkn|<init>()|acmens.BridgeTraceBatch
+23:31:01.1 (13548266)|VARIABLE_SCOPE_BEGIN|[2]|this|acmens.BridgeTraceBatch|true|false
+23:31:01.1 (13584107)|VARIABLE_ASSIGNMENT|[2]|this|{}|0x61bdd4a8
+23:31:01.1 (13608607)|STATEMENT_EXECUTE|[2]
+23:31:01.1 (13619647)|CONSTRUCTOR_EXIT|[16]|01pjV000005DOkn|<init>()|acmens.BridgeTraceBatch
+23:31:01.1 (13632297)|HEAP_ALLOCATE|[68]|Bytes:5
+23:31:01.1 (13653557)|HEAP_ALLOCATE|[74]|Bytes:5
+23:31:01.1 (13663788)|HEAP_ALLOCATE|[82]|Bytes:7
+23:31:01.1 (13776909)|SYSTEM_METHOD_ENTRY|[16]|Database.executeBatch(APEX_OBJECT)
+23:31:01.1 (40513010)|LIMIT_USAGE|[16]|MAX_ASYNC|1|200
+23:31:01.1 (69434385)|SYSTEM_METHOD_EXIT|[16]|Database.executeBatch(APEX_OBJECT)
+23:31:01.69 (69508776)|CUMULATIVE_LIMIT_USAGE
+23:31:01.69 (69508776)|LIMIT_USAGE_FOR_NS|(default)|
+  Number of SOQL queries: 0 out of 100
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 0 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 0 out of 10000
+  Maximum CPU time: 0 out of 10000
+  Maximum heap size: 0 out of 10000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:31:01.69 (69508776)|LIMIT_USAGE_FOR_NS|acmens|
+  Number of SOQL queries: 0 out of 100
+  Number of query rows: 0 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 0 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 0 out of 10000
+  Maximum CPU time: 0 out of 10000
+  Maximum heap size: 0 out of 10000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+23:31:01.69 (69508776)|TOTAL_EMAIL_RECIPIENTS_QUEUED|0
+23:31:01.69 (69508776)|CUMULATIVE_LIMIT_USAGE_END
+
+23:31:01.1 (70052742)|CODE_UNIT_FINISHED|acmens.Bridge Trace Matrix 1794727758164
+23:31:01.1 (70066032)|EXECUTION_FINISHED
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING_BEGIN
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING|No profiling information for SOQL operations
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING|No profiling information for SOSL operations
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING|No profiling information for DML operations
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING|method invocations|
+External entry point: public void execute(System.SchedulableContext): executed 1 time in 56 ms
+Class.acmens.BridgeTraceBatch.execute: line 16, column 1: global acmens.BridgeTraceBatch(): executed 2 times in 56 ms
+
+23:31:01.89 (89772316)|CUMULATIVE_PROFILING_END
