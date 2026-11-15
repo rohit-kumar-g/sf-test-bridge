@@ -330,9 +330,19 @@ async function renderDebugLogs() {
     btns.append(b);
   };
   // no bridge server: it runs inside Claude Code
-  if (!r?.ok) { $('dlText').textContent = /not connected|did not answer/i.test(r?.error || '') ? 'Open Claude Code to capture (the bridge server runs with it).' : `Unavailable: ${r?.error || 'no answer'}`; $('dlCap').hidden = true; return; }
+  if (!r?.ok) { $('dlText').textContent = /not connected|did not answer/i.test(r?.error || '') ? 'Open Claude Code to capture (the bridge server runs with it).' : `Unavailable: ${r?.error || 'no answer'}`; $('dlCap').hidden = true; $('dlOthers').hidden = true; $('dlUsers').hidden = true; return; }
   const d = r.debuglog;
   $('dlCap').hidden = d.state === 'not set up';
+  showOthers(d.addedUsers || []);
+  if (d.state === 'not set up') $('dlUsers').hidden = true;
+  const pick = () => {
+    const b = document.createElement('button');
+    b.className = 'small';
+    b.textContent = 'Log a user…';
+    b.title = 'Add debug logging for any user: an integration or API user, Automated Process, a guest or portal user…';
+    b.onclick = () => openUsers();
+    btns.append(b);
+  };
   if (d.state === 'not set up') {
     $('dlText').textContent = 'Not set up.';
     const b = document.createElement('button');
@@ -344,14 +354,74 @@ async function renderDebugLogs() {
     $('dlText').textContent = 'Off.';
     $('dlText').title = `${d.user} · ${d.org}`;
     button('Start 30 min', true, { action: 'start', minutes: 30 });
+    pick();
     button('Remove', false, { action: 'remove' });
   } else {
     $('dlText').textContent = `On · ${d.minutesLeft} min left`;
     $('dlText').title = `${d.user} · ${d.org}`;
     button('Stop', false, { action: 'stop' });
+    pick();
     button('Remove', false, { action: 'remove' });
   }
 }
+// Other users being logged (added by the developer): a chip each, × stops one.
+function showOthers(users) {
+  const box = $('dlOthers');
+  box.replaceChildren();
+  box.hidden = !users.length;
+  if (!users.length) return;
+  box.append(document.createTextNode('Also logging:'));
+  for (const u of users) {
+    const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = u.name;
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = `Stop logging ${u.name}`; x.setAttribute('aria-label', `Stop logging ${u.name}`);
+    x.onclick = async () => { x.disabled = true; const r = await capture('removeuser', { user: u.id }); if (!r?.ok) $('dlUserSay').textContent = `Not done: ${r?.error || 'no answer'}`; renderDebugLogs(); if (!$('dlUsers').hidden) findUsers(); };
+    chip.append(x);
+    box.append(chip);
+  }
+}
+// Log a user: any active user (any licence), found by name, username or email;
+// empty: the users background work usually runs as (integration, API, Automated Process…).
+let userTyping = null;
+function openUsers() {
+  $('dlUsers').hidden = false;
+  $('dlUserFind').value = '';
+  $('dlUserFind').focus();
+  findUsers();
+}
+async function findUsers() {
+  const text = $('dlUserFind').value.trim();
+  $('dlUserSay').textContent = 'Looking…';
+  const r = await capture('findusers', { text });
+  if (text !== $('dlUserFind').value.trim()) return; // typed on since
+  const list = $('dlUserList');
+  list.replaceChildren();
+  if (!r?.ok) { $('dlUserSay').textContent = `Not done: ${r?.error || 'no answer'}`; return; }
+  const users = r.debuglog.users || [];
+  $('dlUserSay').textContent = users.length ? (text ? '' : 'Integration, API and background users. Type to find anyone.') : (text ? 'No active user found.' : 'Type a name, username or email.');
+  for (const u of users) {
+    const item = node('li');
+    const who = node('span', 'who', u.name);
+    who.append(node('div', '', `${u.license || '—'} · ${u.username}`));
+    who.title = `${u.username}${u.profile ? `\n${u.profile}` : ''}`;
+    item.append(who);
+    if (u.you) item.append(node('span', 'muted', 'you'));
+    else if (u.logged) item.append(node('span', 'muted', 'logging'));
+    else {
+      const b = node('button', 'small', 'Log'); b.type = 'button'; b.title = `Add debug logging for ${u.name}`;
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = '…';
+        const a = await capture('adduser', { user: u.id });
+        $('dlUserSay').textContent = a?.ok ? a.debuglog.note : `Not done: ${a?.error || 'no answer'}`;
+        if (a?.ok) { b.replaceWith(node('span', 'muted', 'logging')); renderDebugLogs(); } else { b.disabled = false; b.textContent = 'Log'; }
+      };
+      item.append(b);
+    }
+    list.append(item);
+  }
+}
+$('dlUserFind').addEventListener('input', () => { clearTimeout(userTyping); userTyping = setTimeout(findUsers, 350); });
+$('dlUserFind').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(userTyping); findUsers(); } });
+$('dlUsersClose').onclick = () => { $('dlUsers').hidden = true; };
 OK_TEXT.debuglog = (m) => ({ start: 'Debug logs started.', stop: 'Debug logs stopped.', remove: 'Debug logging removed from the org.', setup: 'Debug logs are set up and on.', capture: { start: 'Capture started.', stop: 'Capture stopped.', adduser: 'Logging added.', send: 'Sent to Claude.', end: 'Capture ended.' }[m.step] }[m.action] || 'Done.');
 
 // Capture: Start marks "from now" (and turns logging on), Stop is optional. The logs

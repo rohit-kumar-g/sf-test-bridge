@@ -209,7 +209,10 @@ export class Bridge extends EventEmitter {
             if (step === 'search') return dl.captureSearch({ by, terms: p.terms, sync: p.sync === true });
             if (step === 'explain') return dl.captureExplain({ id: String(p.id || ''), projectRoot });
             if (step === 'send' || step === 'select') return dl.captureSend({ by, ids: p.ids, projectRoot });
-            if (step === 'adduser') return dl.addUser({ user: p.user });
+            // adding a user from the popup turns the developer's logging on first (the added users end with it)
+            if (step === 'adduser') { if (dl.stateView().state === 'ready') await dl.start(Number(p.minutes) || 30); return dl.addUser({ user: p.user }); }
+            if (step === 'removeuser') return dl.removeUser({ user: String(p.user || '') });
+            if (step === 'findusers') return dl.findUsers({ text: p.text });
             if (step === 'log') return dl.captureLog({ id: String(p.id || '') });
             if (step === 'end') return dl.captureEnd();
             return dl.captureView();

@@ -96,6 +96,13 @@
   ul.caplogs .btns { display: flex; flex-direction: column; gap: 4px; }
   ul.caplogs .ex { margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--line); }
   #dlCapMore summary { cursor: pointer; font-size: 12px; margin-top: 6px; }
+  .others { font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .others .chip { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 10px; padding: 0 2px 0 8px; }
+  .others .chip button { border: 0; background: none; padding: 0 4px; cursor: pointer; color: var(--muted); }
+  ul.users { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto; }
+  ul.users li { display: flex; gap: 6px; align-items: center; font-size: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
+  ul.users .who { flex: 1; min-width: 0; }
+  ul.users .who div { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   ul.caplogs code { display: block; font: 11px ui-monospace, Consolas, monospace; font-weight: normal; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
 </style>
 </head>
@@ -152,6 +159,12 @@
   <div class="card">
     <div class="label">Debug logs</div>
     <div class="row"><span id="dlText" class="grow muted">…</span><span id="dlBtns" class="row"></span></div>
+    <div id="dlOthers" class="others" hidden></div>
+    <div id="dlUsers" class="cap" hidden>
+      <div class="row"><input id="dlUserFind" type="text" class="grow" spellcheck="false" placeholder="Name, username or email" aria-label="Find a user to log"><button id="dlUsersClose" class="small" type="button">Close</button></div>
+      <div id="dlUserSay" class="say muted" aria-live="polite"></div>
+      <ul id="dlUserList" class="users"></ul>
+    </div>
     <div id="dlCap" class="cap" hidden>
       <div class="row"><button id="dlCapStart" class="small primary" type="button">Start capture</button><button id="dlCapStop" class="small" type="button" hidden>Stop</button><span id="dlCapState" class="muted grow">Finds the logs of your next change, API call or scheduled job.</span><button id="dlCapEnd" class="small" type="button" hidden>End</button></div>
       <form id="dlCapFind" class="find" hidden>

@@ -2775,7 +2775,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     }
   })().then((r) => r, (e) => ({ error: e.message })).then((r) => {
     // every user decision in the popup is recorded in the hub's traffic log
-    if (msg.cmd !== 'status' && !(msg.cmd === 'debuglog' && (['status', 'orgs', 'plan'].includes(msg.action) || (msg.action === 'capture' && ['view', 'check', 'log', 'search', 'explain'].includes(msg.step))))) send({ type: 'popup-action', cmd: msg.cmd, args: { ...msg, cmd: undefined }, ok: !(r && (r.error || r.ok === false)), error: r?.error || r?.errors?.join('; ') });
+    if (msg.cmd !== 'status' && !(msg.cmd === 'debuglog' && (['status', 'orgs', 'plan'].includes(msg.action) || (msg.action === 'capture' && ['view', 'check', 'log', 'search', 'explain', 'findusers'].includes(msg.step))))) send({ type: 'popup-action', cmd: msg.cmd, args: { ...msg, cmd: undefined }, ok: !(r && (r.error || r.ok === false)), error: r?.error || r?.errors?.join('; ') });
     reply(r);
   });
   return true;

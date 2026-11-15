@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "browser": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/src/index.js"]
+    }
+  }
+}

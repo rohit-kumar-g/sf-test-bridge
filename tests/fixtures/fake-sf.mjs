@@ -26,6 +26,14 @@ if (cmd === 'data query --query' || cmd === 'data query --use-tooling-api') {
   needOrg();
   const q = opt('--query');
   if (/FROM Organization/.test(q)) out({ records: [process.env.FAKE_SF_MODE === 'production' || org === 'prod@acme.test' ? { Id: '00D2', IsSandbox: false, OrganizationType: 'Enterprise Edition' } : { Id: '00D1', IsSandbox: true, OrganizationType: 'Enterprise Edition' }] });
+  // the popup's "Log a user": active users by name / username / email, or the background kinds
+  if (/FROM User WHERE IsActive = true AND \(/.test(q)) {
+    const t = /\(Name LIKE '%(.*?)%'/.exec(q)?.[1]?.replace(/\\_/g, '_').toLowerCase();
+    // like the real org: a Profile.* filter never matches a user with no profile
+    const bg = (u) => (/UserType IN/.test(q) && ['AutomatedProcess', 'CloudIntegrationUser', 'Guest'].includes(u.UserType))
+      || (/Profile\./.test(q) && !!u.Profile && (/Integration/.test(u.Profile.UserLicense?.Name || '') || /API/.test(u.Profile.Name || '')));
+    out({ records: (st.users || []).filter((u) => u.IsActive !== false && (t ? `${u.Name} ${u.Username}`.toLowerCase().includes(t) : bg(u))).sort((a, b) => a.Name.localeCompare(b.Name)) });
+  }
   // a named user (capture: add logging for another user), else the CLI user
   const uq = /FROM User WHERE (Id|Username) = '([^']+)'/.exec(q);
   const known = uq && (st.users || []).find((x) => x.Id === uq[2] || x.Username === uq[2]);

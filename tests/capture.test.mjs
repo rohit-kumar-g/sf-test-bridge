@@ -29,14 +29,20 @@ const PROJECT = path.join(FIX, 'project');
 const list = JSON.parse(fs.readFileSync(path.join(FIX, 'loglist.json'), 'utf8'));
 const text = (id) => fs.readFileSync(path.join(FIX, 'logs', `${id}.log`), 'utf8');
 const ACC = '001jV00000L8HHJQA3';
-const DEV = '005000000000001AAA'; const AUTO = '005000000000002AAA'; const APU = '005000000000003AAA';
+const DEV = '005000000000001AAA'; const AUTO = '005000000000002AAA'; const APU = '005000000000003AAA'; const GUEST = '005000000000004AAA'; const GONE = '005000000000005AAA';
 const PRE = '07LjV000003Oza5UAC'; const SAVE = '07LjV000003Oza6UAC'; const ASYNC = '07LjV000003OyKgUAK';
 const FLOW = '07LjV000003OzbhUAC'; const NOISE = '07LjV000003OzdJUAS'; const SCHED = '07LjV000003P0W9UAK'; const BATCH_ERR = '07LjV000003P1TpUAK';
 
 const fake = () => JSON.parse(fs.readFileSync(process.env.FAKE_SF_STATE, 'utf8'));
 const setFake = (ids, extra = {}) => fs.writeFileSync(process.env.FAKE_SF_STATE, JSON.stringify({
   records: fs.existsSync(process.env.FAKE_SF_STATE) ? fake().records : {}, calls: fs.existsSync(process.env.FAKE_SF_STATE) ? fake().calls : [], seq: fs.existsSync(process.env.FAKE_SF_STATE) ? fake().seq : 0,
-  users: [{ Id: AUTO, Name: 'Automation User', Username: 'automation.user@example.com', IsActive: true }, { Id: DEV, Name: 'Dev User', Username: 'dev@acme.test', IsActive: true }, { Id: APU, Name: 'Automated Process', Username: 'autoproc@example', IsActive: true }],
+  users: [
+    { Id: AUTO, Name: 'Automation User', Username: 'automation.user@example.com', IsActive: true, UserType: 'Standard', Profile: { Name: 'Minimum Access - API Only Integrations', UserLicense: { Name: 'Salesforce Integration' } } },
+    { Id: DEV, Name: 'Dev User', Username: 'dev@acme.test', IsActive: true, UserType: 'Standard', Profile: { Name: 'System Administrator', UserLicense: { Name: 'Salesforce' } } },
+    { Id: APU, Name: 'Automated Process', Username: 'autoproc@example', IsActive: true, UserType: 'AutomatedProcess', Profile: null },
+    { Id: GUEST, Name: 'Site Guest User', Username: 'guest@site.example', IsActive: true, UserType: 'Guest', Profile: { Name: 'Site Profile', UserLicense: { Name: 'Guest User License' } } },
+    { Id: GONE, Name: 'Old Integration', Username: 'old_int@example.com', IsActive: false, UserType: 'Standard', Profile: { Name: 'API Only', UserLicense: { Name: 'Salesforce Integration' } } },
+  ],
   logs: list.filter((l) => ids.includes(l.Id)).map((l) => ({ id: l.Id, start: l.StartTime.replace('+0000', 'Z'), operation: l.Operation, status: l.Status, duration: l.DurationMilliseconds, text: text(l.Id), ...(l.Id === SCHED ? { user: 'Automation User', userId: AUTO } : {}) })),
   ...extra,
 }));
@@ -144,6 +150,23 @@ v = await dl.captureCheck();
 ok(/a log only when automation runs/.test(v.say) && /Add the record id/.test(v.say), 'no record id, no log after a minute: no automation ran');
 const indexSrc = fs.readFileSync(fileURLToPath(new URL('../mcp-server/src/index.js', import.meta.url)), 'utf8');
 ok(!/addUser\(/.test(indexSrc) && !/adduser/i.test(indexSrc.match(/name: 'browser_debuglog'[\s\S]*?run: async/)[0]), 'Claude has no action that adds logging for another user');
+// ---- "Log a user" (popup): any active user, any licence ----
+setFake([]);
+let fu = await dl.findUsers({ text: '' });
+const names = fu.users.map((u) => u.name);
+ok(names.includes('Automation User') && names.includes('Automated Process') && names.includes('Site Guest User') && !names.includes('Dev User') && !names.includes('Old Integration'), `no text: the integration / API / background users, active only (${names})`);
+ok(fu.users.find((u) => u.id === AUTO).license === 'Salesforce Integration' && fu.users.find((u) => u.id === APU).license === 'Automated Process', 'each with its licence (or kind)');
+fu = await dl.findUsers({ text: 'dev' });
+ok(fu.users.length === 1 && fu.users[0].you, 'by name: yourself marked "you"');
+fu = await dl.findUsers({ text: "old_int'; DELETE" });
+ok(!fu.users.length, 'quotes stripped, inactive users not offered');
+await assert.rejects(() => dl.addUser({ user: GONE }), /inactive/); n++;
+ok(/Now logging Site Guest User/.test((await dl.addUser({ user: GUEST })).note) && (await dl.findUsers({ text: 'guest' })).users[0].logged, 'a guest user added; shown as logging');
+ok(dl.stateView().addedUsers.some((u) => u.id === GUEST), 'status lists the added users with ids (popup chips)');
+await dl.start(60);
+ok(dl.readState().extraFlags.find((e) => e.userId === GUEST).expiresAt === dl.readState().expiresAt && fake().calls.some((c) => /data update record.*TraceFlag.*ExpirationDate=/.test(c)), 'logging renewed: the added user keeps logging as long as yours');
+ok(/Stopped logging Site Guest User/.test((await dl.removeUser({ user: GUEST })).note) && !dl.readState().extraFlags.length, 'one added user stopped (×)');
+await assert.rejects(() => dl.removeUser({ user: AUTO }), /not added here/); n++;
 setFake([], { tracedElsewhere: [AUTO] });
 ok(/already has logging on/.test((await dl.addUser({ user: AUTO })).note), 'a user logged by someone else: said, not an error');
 await dl.stop();

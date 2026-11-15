@@ -83,7 +83,10 @@ export function stateView(s = readState()) {
   return {
     state: on ? 'on' : 'ready', org: s.myDomain, orgType: s.orgType, user: s.username,
     ...(on ? { expiresAt: s.expiresAt, minutesLeft: Math.ceil((Date.parse(s.expiresAt) - Date.now()) / 60_000) } : {}),
-    ...(on && (s.extraFlags || []).some((e) => Date.parse(e.expiresAt) > Date.now()) ? { alsoLogging: s.extraFlags.filter((e) => Date.parse(e.expiresAt) > Date.now()).map((e) => e.name) } : {}),
+    ...(on && (s.extraFlags || []).some((e) => Date.parse(e.expiresAt) > Date.now()) ? {
+      alsoLogging: s.extraFlags.filter((e) => Date.parse(e.expiresAt) > Date.now()).map((e) => e.name),
+      addedUsers: s.extraFlags.filter((e) => Date.parse(e.expiresAt) > Date.now()).map((e) => ({ id: e.userId, name: e.name })),
+    } : {}),
     level: s.levels,
   };
 }
@@ -269,7 +272,16 @@ export async function start(minutes = 30) {
   if (![15, 30, 60].includes(Number(minutes))) minutes = 30;
   if (st.traceFlagId) await toolingDelete('TraceFlag', st.traceFlagId, st.username, 'replace the previous trace flag').catch(() => {});
   const tf = await createTraceFlag(st, Number(minutes));
-  writeState({ ...st, traceFlagId: tf.id, expiresAt: tf.expiresAt, startedAt: new Date().toISOString() });
+  // the other users the developer added keep logging as long as the developer's own
+  const extraFlags = [];
+  for (const x of st.extraFlags || []) {
+    if (!x.traceFlagId || Date.parse(x.expiresAt) <= Date.now()) continue;
+    try {
+      await sf(['data', 'update', 'record', '--use-tooling-api', '--sobject', 'TraceFlag', '--record-id', x.traceFlagId, '--values', `ExpirationDate=${tf.expiresAt}`], { org: st.username, write: true, what: `keep debug logs for ${x.name}` });
+      extraFlags.push({ ...x, expiresAt: tf.expiresAt });
+    } catch { extraFlags.push(x); } // keeps its own end
+  }
+  writeState({ ...st, traceFlagId: tf.id, expiresAt: tf.expiresAt, startedAt: new Date().toISOString(), extraFlags });
   return stateView();
 }
 export async function stop() {
@@ -613,6 +625,7 @@ export async function addUser({ user } = {}) {
   const x = q.records?.[0];
   if (!x) throw new Error('No such user in this org.');
   if (x.Id.slice(0, 15) === String(st.userId).slice(0, 15)) return { user: x.Name, note: 'That is you: already logged.' };
+  if (x.IsActive === false) throw new Error(`${x.Name} is inactive: nothing runs as this user.`);
   const extra = st.extraFlags || [];
   if (extra.some((e) => e.userId === x.Id && Date.parse(e.expiresAt) > Date.now())) return { user: x.Name, note: `Already logging ${x.Name}.` };
   try {
@@ -624,6 +637,47 @@ export async function addUser({ user } = {}) {
     if (/already|more than one|DUPLICATE/i.test(e.message)) return { user: x.Name, note: `${x.Name} already has logging on (set by someone else).` };
     throw e;
   }
+}
+// Stop logging one added user (only a trace flag this setup created).
+export async function removeUser({ user } = {}) {
+  const st = readState();
+  if (!st) throw new Error('Debug logs are not set up.');
+  const x = (st.extraFlags || []).find((e) => e.userId === user);
+  if (!x) throw new Error('That user was not added here.');
+  if (x.traceFlagId) await toolingDelete('TraceFlag', x.traceFlagId, st.username, `stop debug logs for ${x.name}`).catch((e) => { if (!/not found|INVALID_CROSS_REFERENCE|ENTITY_IS_DELETED|entity is deleted/i.test(e.message)) throw e; });
+  writeState({ ...st, extraFlags: st.extraFlags.filter((e) => e.userId !== user) });
+  return { user: x.name, note: `Stopped logging ${x.name}.` };
+}
+// The users the developer can add logging for: active users of any kind (a
+// Salesforce, Integration or API-only licence, Automated Process, Platform
+// Integration, a site guest, a portal user), found by name, username or email.
+// No text: the users background work usually runs as.
+const USER_KIND = { AutomatedProcess: 'Automated Process', Guest: 'Site guest', CloudIntegrationUser: 'Platform Integration', PowerPartner: 'Partner', PowerCustomerSuccess: 'Customer portal', CspLitePortal: 'Customer portal', CsnOnly: 'Chatter' };
+export async function findUsers({ text } = {}) {
+  const st = readState();
+  if (!st) throw new Error('Debug logs are not set up.');
+  const t = String(text || '').replace(/[^\w .@+-]/g, '').trim().slice(0, 60);
+  const fields = 'Id, Name, Username, UserType, Profile.Name, Profile.UserLicense.Name';
+  const like = t.replace(/_/g, '\\_');
+  // two queries without text: Automated Process and Platform Integration have no
+  // profile, and an OR with a Profile.* filter drops users whose profile is null
+  const wheres = t
+    ? [`IsActive = true AND (Name LIKE '%${like}%' OR Username LIKE '%${like}%' OR Email LIKE '%${like}%')`]
+    : ["IsActive = true AND (UserType IN ('AutomatedProcess', 'CloudIntegrationUser', 'Guest'))", "IsActive = true AND (Profile.UserLicense.Name LIKE '%Integration%' OR Profile.Name LIKE '%API%')"];
+  const found = new Map();
+  for (const where of wheres) {
+    const r = await readQuery(st.username, `SELECT ${fields} FROM User WHERE ${where} ORDER BY Name LIMIT 20`, { what: t ? 'find users to log' : 'users background work runs as' });
+    for (const u of r.records || []) found.set(u.Id, u);
+  }
+  const added = new Set((st.extraFlags || []).filter((e) => Date.parse(e.expiresAt) > Date.now()).map((e) => e.userId.slice(0, 15)));
+  return {
+    users: [...found.values()].sort((a, b) => a.Name.localeCompare(b.Name)).slice(0, 25).map((u) => ({
+      id: u.Id, name: u.Name, username: u.Username,
+      license: u.Profile?.UserLicense?.Name || USER_KIND[u.UserType] || u.UserType || '',
+      ...(u.Profile?.Name ? { profile: u.Profile.Name } : {}),
+      ...(u.Id.slice(0, 15) === String(st.userId).slice(0, 15) ? { you: true } : added.has(u.Id.slice(0, 15)) ? { logged: true } : {}),
+    })),
+  };
 }
 
 // One shared capture (the popup and Claude): Start marks the time (the popup also
